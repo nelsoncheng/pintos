@@ -139,6 +139,17 @@ thread_tick (void)
 #endif
   else
     kernel_ticks++;
+   
+   /* Check if the thread soonest to wake up from a timed sleep is ready to wake up yet */
+   long long total_ticks = idle_ticks + user_ticks + kernel_ticks;
+   struct list_elem *first_elem = list_begin (&sleep_timer_list->waiters);
+   struct thread *first_thread_to_wake = list_entry (first_elem, struct thread, first_elem);
+   
+   if (first_thread_to_wake != NULL){
+      if (&first_thread_to_wake->final_tick <= total_ticks){
+         sema_up(sleep_timer_list);
+      }
+   }
 
   /* Enforce preemption. */
   if (++thread_ticks >= TIME_SLICE)
