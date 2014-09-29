@@ -28,6 +28,9 @@ static struct list ready_list;
    when they are first scheduled and removed when they exit. */
 static struct list all_list;
 
+/* List of threads that are waiting for a timer to go off */
+static struct semaphore sleep_timer_list;
+
 /* Idle thread. */
 static struct thread *idle_thread;
 
@@ -36,6 +39,8 @@ static struct thread *initial_thread;
 
 /* Lock used by allocate_tid(). */
 static struct lock tid_lock;
+
+
 
 /* Stack frame for kernel_thread(). */
 struct kernel_thread_frame 
@@ -92,6 +97,7 @@ thread_init (void)
   lock_init (&tid_lock);
   list_init (&ready_list);
   list_init (&all_list);
+  sema_init (&sleep_timer_list, 0);
 
   /* Set up a thread structure for the running thread. */
   initial_thread = running_thread ();
