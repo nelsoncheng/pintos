@@ -100,7 +100,7 @@ timer_sleep (int64_t ticks)
   intr_set_level (old_level);
   
   ASSERT (intr_get_level () == INTR_ON);
-  sema_down(sleep_timer_list*);
+  sema_tick_ordered_down(sleep_timer_list*);
 
   
 }
