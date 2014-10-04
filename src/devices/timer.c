@@ -95,12 +95,12 @@ timer_sleep (int64_t ticks)
   
   old_level = intr_disable ();
   int64_t last_tick = start + ticks;
-  struct thread *current_thread = current_thread ();
-  &current_thread->final_tick = (long long) last_tick;
+  struct thread *current_thread = thread_current();
+  current_thread->final_tick = (long long) last_tick;
   intr_set_level (old_level);
   
   ASSERT (intr_get_level () == INTR_ON);
-  sema_tick_ordered_down(sleep_timer_list*);
+  sema_tick_ordered_down(current_thread->sleep_sema);
 
   
 }

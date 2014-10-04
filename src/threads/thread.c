@@ -139,15 +139,15 @@ thread_tick (void)
 #endif
   else
     kernel_ticks++;
-   
+
    /* Check if the thread soonest to wake up from a timed sleep is ready to wake up yet */
    long long total_ticks = idle_ticks + user_ticks + kernel_ticks;
-   struct list_elem *first_elem = list_begin (&sleep_timer_list->waiters);
+   struct list_elem *first_elem = list_begin (&sleep_timer_list.waiters);
    struct thread *first_thread_to_wake = list_entry (first_elem, struct thread, allelem);
    
    if (first_thread_to_wake != NULL){
-      if (&first_thread_to_wake->final_tick <= total_ticks){
-         sema_up(sleep_timer_list);
+      if (first_thread_to_wake->final_tick <= total_ticks){
+         sema_up(&sleep_timer_list);
       }
    }
 
@@ -487,7 +487,9 @@ init_thread (struct thread *t, const char *name, int priority)
   t->stack = (uint8_t *) t + PGSIZE;
   t->priority = priority;
   t->magic = THREAD_MAGIC;
+  t->sleep_sema = &sleep_timer_list;
   list_push_back (&all_list, &t->allelem);
+  
 }
 
 /* Allocates a SIZE-byte frame at the top of thread T's stack and

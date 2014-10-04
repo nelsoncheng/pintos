@@ -84,7 +84,7 @@ typedef int tid_t;
    blocked state is on a semaphore wait list. */
 struct thread
   {
-    long long final_tick = 0;
+    long long final_tick;
     /* Owned by thread.c. */
     tid_t tid;                          /* Thread identifier. */
     enum thread_status status;          /* Thread state. */
@@ -92,6 +92,7 @@ struct thread
     uint8_t *stack;                     /* Saved stack pointer. */
     int priority;                       /* Priority. */
     struct list_elem allelem;           /* List element for all threads list. */
+	struct semaphore *sleep_sema;
 
     /* Shared between thread.c and synch.c. */
     struct list_elem elem;              /* List element. */

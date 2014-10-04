@@ -523,11 +523,3 @@ list_min (struct list *list, list_less_func *less, void *aux)
   return min;
 }
 
-bool tick_less_func(const struct list_elem *a, const struct list_elem *b, void *aux UNUSED)
-{
-  struct thread *t1 = list_entry (a, struct thread, allelem);
-  struct thread *t2 = list_entry (b, struct thread, allelem);
-  long long p1 = t1->final_tick;
-  long long p2 = t2->final_tick;
-  return p1 < p2;
-}

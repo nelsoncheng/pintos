@@ -41,6 +41,9 @@ void cond_wait (struct condition *, struct lock *);
 void cond_signal (struct condition *, struct lock *);
 void cond_broadcast (struct condition *, struct lock *);
 
+void sema_tick_ordered_down (struct semaphore *sema);
+bool tick_less_func(const struct list_elem *a, const struct list_elem *b, void *aux);
+
 /* Optimization barrier.
 
    The compiler will not reorder operations across an
