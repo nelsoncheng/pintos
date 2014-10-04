@@ -87,14 +87,16 @@ timer_elapsed (int64_t then)
 /* Sleeps for approximately TICKS timer ticks.  Interrupts must
    be turned on. */
 void
-timer_sleep (int64_t ticks) 
+timer_sleep (int64_t sleep_ticks) 
 {
   enum intr_level old_level;
   
   int64_t start = timer_ticks ();
   
   old_level = intr_disable ();
-  int64_t last_tick = start + ticks;
+	printf("thread will sleep for %d ticks, ", sleep_ticks);
+	printf("currently at %d\n", start);
+  int64_t last_tick = start + sleep_ticks;
   struct thread *current_thread = thread_current();
   current_thread->final_tick = (long long) last_tick;
   intr_set_level (old_level);

@@ -142,12 +142,15 @@ thread_tick (void)
 
    /* Check if the thread soonest to wake up from a timed sleep is ready to wake up yet */
    long long total_ticks = idle_ticks + user_ticks + kernel_ticks;
-   struct list_elem *first_elem = list_begin (&sleep_timer_list.waiters);
-   struct thread *first_thread_to_wake = list_entry (first_elem, struct thread, allelem);
-   
-   if (first_thread_to_wake != NULL){
+   struct list_elem *first_elem = list_begin (&(sleep_timer_list.waiters));
+   struct thread *first_thread_to_wake = list_entry (first_elem, struct thread, elem);
+   if (!list_empty(&sleep_timer_list.waiters)){
+		printf("thread's current tick: %lld\t\t",total_ticks);
+		printf("thread's final tick: %d\n",first_thread_to_wake->final_tick);
       if (first_thread_to_wake->final_tick <= total_ticks){
+		 printf("sleep_timer_list sema value: %d\n",sleep_timer_list.value);
          sema_up(&sleep_timer_list);
+		 intr_yield_on_return ();
       }
    }
 
@@ -482,6 +485,7 @@ init_thread (struct thread *t, const char *name, int priority)
   ASSERT (name != NULL);
 
   memset (t, 0, sizeof *t);
+  t->final_tick = 0;
   t->status = THREAD_BLOCKED;
   strlcpy (t->name, name, sizeof t->name);
   t->stack = (uint8_t *) t + PGSIZE;

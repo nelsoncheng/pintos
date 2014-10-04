@@ -86,11 +86,10 @@ sema_tick_ordered_down (struct semaphore *sema)
   ASSERT (!intr_context ());
 
   old_level = intr_disable ();
-  while (sema->value == 0) 
-    {
-      list_insert_ordered (sema, &thread_current ()->elem, *tick_less_func, NULL);
-      thread_block ();
-    }
+
+  list_insert_ordered (&sema->waiters, &thread_current ()->elem, *tick_less_func, NULL);
+  thread_block ();
+
   sema->value--;
   intr_set_level (old_level);
 }
@@ -359,8 +358,8 @@ cond_broadcast (struct condition *cond, struct lock *lock)
 
 bool tick_less_func(const struct list_elem *a, const struct list_elem *b, void *aux UNUSED)
 {
-  struct thread *t1 = list_entry (a, struct thread, allelem);
-  struct thread *t2 = list_entry (b, struct thread, allelem);
+  struct thread *t1 = list_entry (a, struct thread, elem);
+  struct thread *t2 = list_entry (b, struct thread, elem);
   long long p1 = t1->final_tick;
   long long p2 = t2->final_tick;
   return p1 < p2;
