@@ -145,12 +145,14 @@ thread_tick (void)
    struct list_elem *first_elem = list_begin (&(sleep_timer_list.waiters));
    struct thread *first_thread_to_wake = list_entry (first_elem, struct thread, elem);
    if (!list_empty(&sleep_timer_list.waiters)){
-		printf("thread's current tick: %lld\t\t",total_ticks);
-		printf("thread's final tick: %d\n",first_thread_to_wake->final_tick);
-      if (first_thread_to_wake->final_tick <= total_ticks){
-		 printf("sleep_timer_list sema value: %d\n",sleep_timer_list.value);
+	  
+      while (first_thread_to_wake->final_tick <= total_ticks){
          sema_up(&sleep_timer_list);
 		 intr_yield_on_return ();
+		 if(list_empty(&sleep_timer_list.waiters))
+			break;
+		 first_elem = list_begin (&(sleep_timer_list.waiters));
+		 first_thread_to_wake = list_entry (first_elem, struct thread, elem);
       }
    }
 

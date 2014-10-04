@@ -94,8 +94,7 @@ timer_sleep (int64_t sleep_ticks)
   int64_t start = timer_ticks ();
   
   old_level = intr_disable ();
-	printf("thread will sleep for %d ticks, ", sleep_ticks);
-	printf("currently at %d\n", start);
+
   int64_t last_tick = start + sleep_ticks;
   struct thread *current_thread = thread_current();
   current_thread->final_tick = (long long) last_tick;
