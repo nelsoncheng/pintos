@@ -271,6 +271,11 @@ thread_unblock (struct thread *t)
   //list_push_back
   list_insert_ordered (&ready_list, &t->elem, *priority_less_func, NULL);
   t->status = THREAD_READY;
+  if (t->priority > thread_current()->priority){ 
+	if (thread_current() != idle_thread){
+	  thread_yield();
+	}
+  }
   intr_set_level (old_level);
 }
 
@@ -368,8 +373,11 @@ thread_foreach (thread_action_func *func, void *aux)
 void
 thread_set_priority (int new_priority) 
 {
+  lock_acquire(&thread_current()->priority_lock);
   thread_current ()->priority = new_priority;
+  lock_release(&thread_current()->priority_lock);
   if (thread_current ()->priority < list_entry (list_next(&thread_current()->elem), struct thread, elem) ->priority) {
+	list_sort(&ready_list, priority_less_func, NULL);
 	thread_yield();
   }
 }
@@ -492,6 +500,7 @@ init_thread (struct thread *t, const char *name, int priority)
   ASSERT (name != NULL);
 
   memset (t, 0, sizeof *t);
+  lock_init(&t->priority_lock);
   t->final_tick = 0;
   t->status = THREAD_BLOCKED;
   strlcpy (t->name, name, sizeof t->name);
@@ -626,3 +635,4 @@ bool priority_less_func(const struct list_elem *a, const struct list_elem *b, vo
   long long p2 = t2->priority;
   return p1 > p2;
 }
+

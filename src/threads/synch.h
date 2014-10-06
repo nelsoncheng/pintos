@@ -43,6 +43,7 @@ void cond_broadcast (struct condition *, struct lock *);
 
 void sema_tick_ordered_down (struct semaphore *sema);
 bool tick_less_func(const struct list_elem *a, const struct list_elem *b, void *aux);
+bool condvar_less_func(const struct list_elem *a, const struct list_elem *b, void *aux);
 
 /* Optimization barrier.
 
