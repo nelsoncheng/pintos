@@ -375,6 +375,7 @@ thread_set_priority (int new_priority)
 {
   lock_acquire(&thread_current()->priority_lock);
   thread_current ()->priority = new_priority;
+  thread_current ()->base_priority = new_priority;
   lock_release(&thread_current()->priority_lock);
   if (thread_current ()->priority < list_entry (list_next(&thread_current()->elem), struct thread, elem) ->priority) {
 	list_sort(&ready_list, priority_less_func, NULL);
@@ -501,14 +502,16 @@ init_thread (struct thread *t, const char *name, int priority)
 
   memset (t, 0, sizeof *t);
   lock_init(&t->priority_lock);
+  list_init(&t->waiting_on_thread);
   t->final_tick = 0;
   t->status = THREAD_BLOCKED;
   strlcpy (t->name, name, sizeof t->name);
   t->stack = (uint8_t *) t + PGSIZE;
   t->priority = priority;
+  t->base_priority = priority;
   t->magic = THREAD_MAGIC;
   t->sleep_sema = &sleep_timer_list;
-  //list_push_back (&all_list, &t->allelem);
+
   list_insert_ordered (&all_list, &t->allelem, *priority_less_func, NULL);
   
 }
