@@ -20,7 +20,7 @@
 
 static thread_func start_process NO_RETURN;
 static bool load (const char *cmdline, void (**eip) (void), void **esp);
-static void push_values_stack(void **esp, const char *file_name);
+static void process_push_stack(char *file_name, void **esp)
 
 /* Starts a new thread running a user program loaded from
    FILENAME.  The new thread may be scheduled (and may even exit)
@@ -59,6 +59,7 @@ start_process (void *file_name_)
   char *file_name = file_name_;
   struct intr_frame if_;
   bool success;
+  
 
   /* Initialize interrupt frame and load executable. */
   memset (&if_, 0, sizeof if_);
@@ -71,6 +72,9 @@ start_process (void *file_name_)
   palloc_free_page (file_name);
   if (!success) 
     thread_exit ();
+    
+  process_push_stack(file_name, &if_.esp);
+  palloc_free_page (file_name);  
 
   /* Start the user process by simulating a return from an
      interrupt, implemented by intr_exit (in
@@ -80,6 +84,62 @@ start_process (void *file_name_)
      and jump to it. */
   asm volatile ("movl %0, %%esp; jmp intr_exit" : : "g" (&if_) : "memory");
   NOT_REACHED ();
+}
+
+static void
+process_push_stack(char *file_name, void **esp)
+{
+  char *rest, token;
+  int i, argc;
+  
+  //int arguments_length = strlen (file_name) + 1;
+  char *program_name = strtok_r (file_name, " ", &rest);
+  //char **args = (char **) malloc (arguments_length * sizeof(char));
+  char args[128][128];
+  
+  
+  
+  //args[argc++] = program_name;
+  strcpy(args[argc++], program_name);
+  int arguments_length = strlen (program_name) + 1;
+  
+  while(token = strtok_r(NULL, " ", &rest)) {
+    arguments_length += strlen (token) + 1;
+    //args[argc++] = token;
+    strcpy(args[argc++], token);
+  }
+  
+  int **addresses = (int **) malloc (argc * sizeof(int *));
+  
+  for (i = argc - 1; i >= 0; --i){
+    int arg_length = strlen(args[i])+1;
+    esp -= arg_length;
+    addresses[i] = esp;
+    memcpy (esp, args[i], arg_length);
+  }
+  
+  int word_align_offset = arguments_length % 4;
+  esp -= word_align_offset ? 4 - word_align_offset : 0;
+  
+  if_.esp -= 4;
+  *(int *) esp = 0
+  
+  for (i = argc - 1; i >= 0; --i){
+    esp -= 4;
+    *(void **) (esp) = addresses[i];
+  }
+  
+  esp -= 4;
+  *(char **) esp = esp + 4;
+
+  esp -= 4;
+  *(int *) esp = argc;
+
+  esp -= 4;
+  *(int *) esp = 0;
+
+  free (addresses);
+  //free (args);
 }
 
 /* Waits for thread TID to die and returns its exit status.  If
