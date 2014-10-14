@@ -121,7 +121,7 @@ process_push_stack(char *file_name, void **esp)
   int word_align_offset = arguments_length % 4;
   esp -= word_align_offset ? 4 - word_align_offset : 0;
   
-  if_.esp -= 4;
+  esp -= 4;
   *(int *) esp = 0
   
   for (i = argc - 1; i >= 0; --i){
