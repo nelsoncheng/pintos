@@ -20,7 +20,7 @@
 
 static thread_func start_process NO_RETURN;
 static bool load (const char *cmdline, void (**eip) (void), void **esp);
-static void process_push_stack(char *file_name, void **esp)
+static void process_push_stack (void **esp, char *file_name, int arguments_length);
 
 /* Starts a new thread running a user program loaded from
    FILENAME.  The new thread may be scheduled (and may even exit)
@@ -31,19 +31,14 @@ process_execute (const char *file_name)
 {
   char *fn_copy;
   tid_t tid;
-  //char *token, *save_ptr;
-  //argc = 0;
+
   /* Make a copy of FILE_NAME.
      Otherwise there's a race between the caller and load(). */
   fn_copy = palloc_get_page (0);
   if (fn_copy == NULL)
     return TID_ERROR;
   strlcpy (fn_copy, file_name, PGSIZE);
-  
-   /*for (token = strtok_r (fn_copy, " ", &save_ptr); token != NULL;
-        token = strtok_r (NULL, " ", &save_ptr))
-		argc++;
-	*/
+
   /* Create a new thread to execute FILE_NAME. */
   tid = thread_create (file_name, PRI_DEFAULT, start_process, fn_copy);
   if (tid == TID_ERROR)
@@ -59,7 +54,6 @@ start_process (void *file_name_)
   char *file_name = file_name_;
   struct intr_frame if_;
   bool success;
-  
 
   /* Initialize interrupt frame and load executable. */
   memset (&if_, 0, sizeof if_);
@@ -72,10 +66,7 @@ start_process (void *file_name_)
   palloc_free_page (file_name);
   if (!success) 
     thread_exit ();
-    
-  process_push_stack(file_name, &if_.esp);
-  palloc_free_page (file_name);  
-
+  
   /* Start the user process by simulating a return from an
      interrupt, implemented by intr_exit (in
      threads/intr-stubs.S).  Because intr_exit takes all of its
@@ -84,62 +75,6 @@ start_process (void *file_name_)
      and jump to it. */
   asm volatile ("movl %0, %%esp; jmp intr_exit" : : "g" (&if_) : "memory");
   NOT_REACHED ();
-}
-
-static void
-process_push_stack(char *file_name, void **esp)
-{
-  char *rest, token;
-  int i, argc;
-  
-  //int arguments_length = strlen (file_name) + 1;
-  char *program_name = strtok_r (file_name, " ", &rest);
-  //char **args = (char **) malloc (arguments_length * sizeof(char));
-  char args[128][128];
-  
-  
-  
-  //args[argc++] = program_name;
-  strcpy(args[argc++], program_name);
-  int arguments_length = strlen (program_name) + 1;
-  
-  while(token = strtok_r(NULL, " ", &rest)) {
-    arguments_length += strlen (token) + 1;
-    //args[argc++] = token;
-    strcpy(args[argc++], token);
-  }
-  
-  int **addresses = (int **) malloc (argc * sizeof(int *));
-  
-  for (i = argc - 1; i >= 0; --i){
-    int arg_length = strlen(args[i])+1;
-    esp -= arg_length;
-    addresses[i] = esp;
-    memcpy (esp, args[i], arg_length);
-  }
-  
-  int word_align_offset = arguments_length % 4;
-  esp -= word_align_offset ? 4 - word_align_offset : 0;
-  
-  esp -= 4;
-  *(int *) esp = 0
-  
-  for (i = argc - 1; i >= 0; --i){
-    esp -= 4;
-    *(void **) (esp) = addresses[i];
-  }
-  
-  esp -= 4;
-  *(char **) esp = esp + 4;
-
-  esp -= 4;
-  *(int *) esp = argc;
-
-  esp -= 4;
-  *(int *) esp = 0;
-
-  free (addresses);
-  //free (args);
 }
 
 /* Waits for thread TID to die and returns its exit status.  If
@@ -154,9 +89,7 @@ process_push_stack(char *file_name, void **esp)
 int
 process_wait (tid_t child_tid UNUSED) 
 {
-	while(true){
-		int i = 0;
-	}
+  while(1){;}
   return -1;
 }
 
@@ -264,7 +197,7 @@ struct Elf32_Phdr
 #define PF_W 2          /* Writable. */
 #define PF_R 4          /* Readable. */
 
-static bool setup_stack (void **esp, const char *file_name);
+static bool setup_stack (void **esp, char *file_name);
 static bool validate_segment (const struct Elf32_Phdr *, struct file *);
 static bool load_segment (struct file *file, off_t ofs, uint8_t *upage,
                           uint32_t read_bytes, uint32_t zero_bytes,
@@ -283,6 +216,14 @@ load (const char *file_name, void (**eip) (void), void **esp)
   off_t file_ofs;
   bool success = false;
   int i;
+  char *rest, *fn_copy;
+
+  /* Make a copy of FILE_NAME.
+     Otherwise there's a race between the caller and load(). */
+  fn_copy = palloc_get_page (0);
+  if (fn_copy == NULL)
+    return TID_ERROR;
+  strlcpy (fn_copy, file_name, PGSIZE);
 
   /* Allocate and activate page directory. */
   t->pagedir = pagedir_create ();
@@ -291,10 +232,13 @@ load (const char *file_name, void (**eip) (void), void **esp)
   process_activate ();
 
   /* Open executable file. */
-  file = filesys_open (file_name);
+
+  char *program = strtok_r (fn_copy, " ", &rest);
+
+  file = filesys_open (program);
   if (file == NULL) 
     {
-      printf ("load: %s: open failed\n", file_name);
+      printf ("load: %s: open failed\n", program);
       goto done; 
     }
 
@@ -307,7 +251,7 @@ load (const char *file_name, void (**eip) (void), void **esp)
       || ehdr.e_phentsize != sizeof (struct Elf32_Phdr)
       || ehdr.e_phnum > 1024) 
     {
-      printf ("load: %s: error loading executable\n", file_name);
+      printf ("load: %s: error loading executable\n", program);
       goto done; 
     }
 
@@ -496,85 +440,82 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
 /* Create a minimal stack by mapping a zeroed page at the top of
    user virtual memory. */
 static bool
-setup_stack (void **esp, const char *file_name) 
+setup_stack (void **esp, char *file_name) 
 {
   uint8_t *kpage;
   bool success = false;
+
+  /* Length of arguments with sentinel value */
+  int arguments_length = strlen (file_name) + 1;
 
   kpage = palloc_get_page (PAL_USER | PAL_ZERO);
   if (kpage != NULL) 
     {
       success = install_page (((uint8_t *) PHYS_BASE) - PGSIZE, kpage, true);
-      if (success) {
-        *esp = PHYS_BASE;
-		//push_values_stack(esp, file_name);
-	  }
+      if (success){
+          *esp = PHYS_BASE;
+		  process_push_stack (esp, file_name, arguments_length);
+      }
       else
         palloc_free_page (kpage);
     }
+  hex_dump((int)*esp, *esp, PHYS_BASE - *esp, 1);
   return success;
 }
 
 static void
-push_values_stack(void **esp, const char *file_name)
+process_push_stack (void **esp, char *file_name, int arguments_length)
 {
-	int i, j, len, total_bytes, argc;
-	char * fname_copy;
-    char *token, *save_ptr;
+  char *rest, *token;
+  int i;
+  int argc = 0;
+  char *args[256];
+  /* Extract file name */
+  char *program_name = strtok_r (file_name, " ", &rest);
 
-	fname_copy = palloc_get_page (0);	
-	strlcpy (fname_copy, file_name, PGSIZE);
+  args[argc++] = program_name;
+  arguments_length = strlen (program_name) + 1;
+  /* Read in args and check multiple spaces for length */
 
-	for (token = strtok_r (fname_copy, " ", &save_ptr); token != NULL;
-		    token = strtok_r (NULL, " ", &save_ptr))
-			argc++;
-	printf("argument line: %s\n", fname_copy);
+  while(token = strtok_r(NULL, " ", &rest)) {
+	arguments_length += strlen (token) + 1;
+	args[argc++] = token;
+  }
+  int *addresses[256];
+  
+  /* Push args stack, right-most first */
+  for (i = argc - 1; i >= 0; --i){
+	int arg_length = strlen(args[i])+1;
+	*esp -= arg_length;
+	addresses[i] = *esp;
+	memcpy (*esp, args[i], arg_length);
+  }
+  
+  /* Round to word size 4. */
+  *esp -= (arguments_length % 4) ? 4 - (arguments_length % 4) : 0;
 
-	int arglen [PGSIZE] = {0};
+  /* push 0 sentinel argument */
+  *esp -= 4;
+  *(int *) *esp = 0;
 
-	/* actual argument strings */
-	for(i = 0; i < argc; ++i){
-		len = strlen(fname_copy) + 1;
-		*esp -= len;
-		memcpy(*esp, fname_copy, len);
-		arglen[i] = len;
-		fname_copy = fname_copy + len;
-		total_bytes += len;
-	}
-
-	/* alignment */
-	for(i = 0; i < total_bytes % 4; ++i){
-		*esp -= 1;
-		memcpy(*esp, '0', 1);		
-	}
-
-	/* null pointer sentinel */
+  /* Push addresses to stack, right-most argument first */
+  for (i = argc - 1; i >= 0; --i){
 	*esp -= 4;
-	memcpy(*esp, 0, 4);
+	*(void **) (*esp) = addresses[i];
+  }
 
-	/* Array of addresses pointing to the location of argument strings */
-	total_bytes = 0;
-	for(j = 0; j < argc; ++j){
-		total_bytes += arglen[j];
-		*esp -= 4;
-		memcpy(*esp, (PHYS_BASE - i - 4) - total_bytes, 4);		
-	}
+  /* Push argv */
+  *esp -= 4;
+  *(char **) *esp = *esp + 4;
 
-	/* Pointer to beginning of argv */
-	*esp -= 4;
-	memcpy(*esp, *esp + 4, 4);
+  /* Push argc */
+  *esp -= 4;
+  *(int *) *esp = argc;
 
-	/* Argc */
-	*esp -= 4;
-	memcpy(*esp, argc, 4);
-
-	/* Fake return address */
-	*esp -= 4;
-	memcpy(*esp, 0, 4);
-	
-	palloc_free_page (fname_copy); 
+  /* Push return address */
+  *esp -= 4;
+  *(int *) *esp = 0; 
 }
-
 /* Adds a mapping from user virtual address UPAGE to kernel
    virtual address KPAGE to the page table.
    If WRITABLE is true, the user process may modify the page;
