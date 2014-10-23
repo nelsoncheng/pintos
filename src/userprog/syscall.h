@@ -16,4 +16,5 @@ static int syscall_read (int fd, void *buffer, unsigned size);
 static int syscall_write (int fd, const void *buffer, unsigned size);
 static void syscall_seek (int fd, unsigned position);
 static struct fd_elem * find_fd_elem (int fd);
+static int is_valid_pointer (void *p);
 #endif /* userprog/syscall.h */
