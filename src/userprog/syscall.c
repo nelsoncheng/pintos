@@ -295,7 +295,7 @@ static unsigned syscall_tell (int fd){
 static void syscall_close (int fd){
 	struct fd_elem *fde;
   
-	fde = find_fd_elem_by_fd_in_process (fd);
+	fde = find_fd_elem (fd);
 
 	if (!fde) 
 		syscall_exit (-1);
