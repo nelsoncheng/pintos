@@ -90,6 +90,7 @@ struct thread
     tid_t tid;                          /* Thread identifier. */
     enum thread_status status;          /* Thread state. */
     char name[16];                      /* Name (for debugging purposes). */
+	char file_name[32];
 	int donated_priorities[8];          /* array containing donated priorities */
     uint8_t *stack;                     /* Saved stack pointer. */
     int priority;                       /* Priority. */
@@ -98,6 +99,7 @@ struct thread
 	struct semaphore *sleep_sema;
 	struct lock priority_lock;
 	struct list waiting_on_thread;
+	
     /* Shared between thread.c and synch.c. */
     struct list_elem elem;              /* List element. */
 

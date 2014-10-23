@@ -241,6 +241,7 @@ load (const char *file_name, void (**eip) (void), void **esp)
       printf ("load: %s: open failed\n", program);
       goto done; 
     }
+  strlcpy (program, t->file_name, strlen(program));
 
   /* Read and verify executable header. */
   if (file_read (file, &ehdr, sizeof ehdr) != sizeof ehdr

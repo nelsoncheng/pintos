@@ -16,13 +16,21 @@
 #include "devices/shutdown.h"
 #include "threads/synch.h"
 
-#define ARG1 (syscall+1)
-#define ARG2 (syscall+2)
-#define ARG3 (syscall+3)
+#define ARG1 (syscall-4)
+#define ARG2 (syscall-8)
+#define ARG3 (syscall-12)
 
 static void syscall_handler (struct intr_frame *);
 
 struct list file_list;
+struct list exit_status_list;
+struct status_elem
+{
+  pid_t pid;
+  int status;
+  struct list_elem elem;
+};
+
 struct fd_elem
 {
   int fd;
@@ -37,6 +45,8 @@ void
 syscall_init (void) 
 {
   intr_register_int (0x30, 3, INTR_ON, syscall_handler, "syscall");
+  list_init (&file_list);
+  list_init (&exit_status_list);
   fd_counter = 2;
 }
 
@@ -103,12 +113,12 @@ static void syscall_halt (void){
 static void syscall_exit (int status){
 	struct thread *curr_thread;
 	struct list_elem *e;
-  
+  /*
 	for(curr_thread = thread_current(); !list_empty (&curr_thread->files);;){
 		e = list_begin (&curr_thread->files);
 		syscall_close (list_entry (e, struct fd_elem, thread_elem)->fd);
 	}
-	/*
+	
 	curr_thread = thread_current ();
 	while (!list_empty (&curr_thread->files)){
 		e = list_begin (&curr_thread->files);
@@ -116,7 +126,7 @@ static void syscall_exit (int status){
 	}*/
 	
 	thread_current()->return_code = status;
-	printf("%s: exit(%d)\n", thread_current()->aux, status);
+	printf("%s: exit(%d)\n", &thread_current()->file_name, status);
 	thread_exit();
 }
 
