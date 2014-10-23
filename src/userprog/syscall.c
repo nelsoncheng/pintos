@@ -48,7 +48,7 @@ syscall_init (void)
   intr_register_int (0x30, 3, INTR_ON, syscall_handler, "syscall");
   list_init (&file_list);
   list_init (&exit_status_list);
-  sema_init (&exec_sema);
+  sema_init (&exec_sema, 0);
   fd_counter = 2;
 }
 
