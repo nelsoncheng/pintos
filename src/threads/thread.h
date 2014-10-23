@@ -99,6 +99,7 @@ struct thread
 	struct semaphore *sleep_sema;
 	struct lock priority_lock;
 	struct list waiting_on_thread;
+	struct list children;
 	
     /* Shared between thread.c and synch.c. */
     struct list_elem elem;              /* List element. */

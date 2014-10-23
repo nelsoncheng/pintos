@@ -24,6 +24,7 @@ static void syscall_handler (struct intr_frame *);
 
 struct list file_list;
 struct list exit_status_list;
+struct semaphore exec_sema;
 struct status_elem
 {
   pid_t pid;
@@ -47,6 +48,7 @@ syscall_init (void)
   intr_register_int (0x30, 3, INTR_ON, syscall_handler, "syscall");
   list_init (&file_list);
   list_init (&exit_status_list);
+  sema_init (&exec_sema);
   fd_counter = 2;
 }
 
@@ -57,6 +59,9 @@ syscall_handler (struct intr_frame *f UNUSED)
   int status;
   
   syscall = f->esp;
+  // check if we decrement first, decrement syscalls by 8, 12, 16
+  // syscall = syscall - 4;
+  printf("syscall: %d\n", (int)syscall);
   switch (*syscall) {
 	case SYS_WRITE: 
 		status = syscall_write((int)* ARG1, (void*)* ARG2, (unsigned)* ARG3);
@@ -112,7 +117,8 @@ static void syscall_halt (void){
 
 static void syscall_exit (int status){
 	struct thread *curr_thread;
-	struct list_elem *e;
+	struct status_elem *status_e;
+	//struct list_elem *e;
   /*
 	for(curr_thread = thread_current(); !list_empty (&curr_thread->files);;){
 		e = list_begin (&curr_thread->files);
@@ -125,7 +131,12 @@ static void syscall_exit (int status){
 		syscall_close (list_entry (e, struct fd_elem, thread_elem)->fd);
 	}*/
 	
-	thread_current()->return_code = status;
+	//TODO: condition for if parent is alive
+	status_e = malloc(sizeof(status_elem));
+	status_e->pid = thread_current()->tid;
+    status_e->status = status;
+	list_push_back (&exit_status_list, &status_e->elem);
+
 	printf("%s: exit(%d)\n", &thread_current()->file_name, status);
 	thread_exit();
 }
