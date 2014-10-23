@@ -503,6 +503,7 @@ init_thread (struct thread *t, const char *name, int priority)
   memset (t, 0, sizeof *t);
   lock_init(&t->priority_lock);
   list_init(&t->waiting_on_thread);
+  list_init(&t->children);
   t->final_tick = 0;
   t->status = THREAD_BLOCKED;
   strlcpy (t->name, name, sizeof t->name);
