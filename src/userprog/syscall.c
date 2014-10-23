@@ -145,7 +145,7 @@ static pid_t syscall_exec (const char *cmd_line){
 	pid_t pid;
 	
     //check for bad pointer
-	if (!cmd_line || !is_user_vaddr (cmd_line))
+	if (!is_valid_pointer(cmd_line))
 		return -1;
 	pid = process_execute (cmd_line);
 	return pid;
@@ -157,7 +157,7 @@ static int syscall_wait (pid_t pid){
 
 static bool syscall_create (const char *file, unsigned initial_size){
 	//return !file ? syscall_exit(-1) : filesys_create (file, initial_size);
-	if (!file){
+	if (!is_valid_pointer(file)){
 		syscall_exit(-1);
 		return false;
 	}
@@ -346,7 +346,7 @@ static struct fd_elem * find_fd_elem (int fd){
 	return NULL;
 }
 
-static int valid_pointer (void *p){
+static int is_valid_pointer (void *p){
 	if ((p == NULL ) || is_user_vaddr(p) || (lookup_page(active_pd(), p, 0) == NULL))
 		return 0;
 	return 1;
