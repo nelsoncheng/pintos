@@ -345,3 +345,9 @@ static struct fd_elem * find_fd_elem (int fd){
 	
 	return NULL;
 }
+
+static int valid_pointer (void *p){
+	if ((p == NULL ) || is_user_vaddr(p) || (lookup_page(active_pd(), p, 0) == NULL))
+		return 0;
+	return 1;
+}
