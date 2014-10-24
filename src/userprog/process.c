@@ -114,6 +114,7 @@ process_wait (tid_t child_tid UNUSED)
   struct thread *curr_thread = thread_current();
   struct list_elem *e;
   struct child_elem *child_e;
+  int child_found = 0;
   
   if(child_tid < 0){
   	return -1;
@@ -123,11 +124,15 @@ process_wait (tid_t child_tid UNUSED)
   e = list_begin(&curr_thread->children);
   while (e != list_end (&curr_thread->children)){
 	child_e = list_entry(e, struct child_elem, elem);
-	if (child_e->pid == child_tid)
-		//do something
+	if (child_e->pid == child_tid){
+		child_found++;
+		break;
+	}
 	e = list_next(l);
   }
-  
+  if (child_found == 0){
+  	return -1;
+  }
   return -1;
 }
 
