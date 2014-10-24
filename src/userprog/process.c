@@ -113,7 +113,7 @@ process_wait (tid_t child_tid UNUSED)
 {
   struct thread *curr_thread = thread_current();
   struct list_elem *e;
-  struct child_elem *child_e;
+  struct child_elem *child_e, *status_e;
   int child_found = 0;
   
   if(child_tid < 0){
@@ -128,11 +128,23 @@ process_wait (tid_t child_tid UNUSED)
 		child_found++;
 		break;
 	}
-	e = list_next(l);
+	e = list_next(e);
   }
   if (child_found == 0){
   	return -1;
   }
+   e = list_begin(&exit_status_list);
+   
+  // look through list of exited threads to see if child is already dead
+  while (e != list_end (&exit_status_list)){
+	status_e = list_entry(e, struct child_elem, elem);
+	if (status_e->pid == child_tid){
+		list_remove(e);
+		return status_e->status;
+	}
+	e = list_next(e);
+  }
+  
   return -1;
 }
 
