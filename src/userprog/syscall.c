@@ -151,6 +151,9 @@ static pid_t syscall_exec (const char *cmd_line){
 	if (!is_valid_pointer(cmd_line))
 		return -1;
 	pid = process_execute (cmd_line);
+	if (pid != -1){
+		//add this PID to the current thread's children list
+	}
 	return pid;
 }
 
