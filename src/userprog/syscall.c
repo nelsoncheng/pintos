@@ -352,7 +352,7 @@ static struct fd_elem * find_fd_elem (int fd){
 		curr_elem = list_entry(e, struct fd_elem, elem);
 		if (curr_elem->fd == fd)
 			return curr_elem;
-		e = list_next(l);
+		e = list_next(e);
 	}
 	
 	return NULL;
