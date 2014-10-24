@@ -45,7 +45,7 @@ process_execute (const char *file_name)
   strlcpy (fn_copy, file_name, PGSIZE);
   
   // Create the auxiliary package
-  struct thread_aux *aux = palloc_get_page(0);
+  struct thread_aux *aux = palloc_get_page(0); //not sure if we can use palloc this way
   sema_init(&aux->process_sema, 1);
   aux->cmd = fn_copy;
   aux->loaded = true;
