@@ -46,12 +46,17 @@ process_execute (const char *file_name)
   
   // Create the auxiliary package
   struct thread_aux *aux = palloc_get_page(0);
-  sema_init(&aux->process_sema, 0);
+  sema_init(&aux->process_sema, 1);
   aux->cmd = fn_copy;
-  aux->loaded = false;
+  aux->loaded = true;
   
   /* Create a new thread to execute FILE_NAME. */
   tid = thread_create (file_name, PRI_DEFAULT, start_process, aux);
+  
+  sema_down(&aux->process_sema);
+  if (!&aux->loaded)
+  	tid = -1;
+  	
   if (tid == TID_ERROR)
     palloc_free_page (fn_copy); 
   return tid;
@@ -75,8 +80,14 @@ start_process (void *file_name_)
 
   /* If load failed, quit. */
   palloc_free_page (file_name);
-  if (!success) 
+  if (!success) {
+    file_name_->loaded = false;
+    sema_up(&aux->process_sema);
+    palloc_free_page (file_name_);
     thread_exit ();
+  }
+  sema_up(&aux->process_sema);
+  palloc_free_page (file_name_);
   
   /* Start the user process by simulating a return from an
      interrupt, implemented by intr_exit (in
