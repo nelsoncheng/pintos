@@ -24,12 +24,17 @@ static void syscall_handler (struct intr_frame *);
 
 struct list file_list;
 struct list exit_status_list;
-struct status_elem
 struct lock file_lock;
-
+struct status_elem
 {
   pid_t pid;
   int status;
+  struct list_elem elem;
+};
+
+struct child_elem
+{
+  pid_t pid;
   struct list_elem elem;
 };
 
