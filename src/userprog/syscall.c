@@ -24,7 +24,6 @@ static void syscall_handler (struct intr_frame *);
 
 struct list file_list;
 struct list exit_status_list;
-struct semaphore exec_sema;
 struct status_elem
 struct lock file_lock;
 
@@ -50,7 +49,6 @@ syscall_init (void)
   intr_register_int (0x30, 3, INTR_ON, syscall_handler, "syscall");
   list_init (&file_list);
   list_init (&exit_status_list);
-  sema_init (&exec_sema, 0);
   lock_init (&file_lock);
   fd_counter = 2;
 }
