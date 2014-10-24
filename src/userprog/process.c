@@ -113,8 +113,20 @@ process_wait (tid_t child_tid UNUSED)
 {
   struct thread *curr_thread = thread_current();
   struct list_elem *e;
+  struct child_elem *child_e;
   
+  if(child_tid < 0){
+  	return -1;
+  }
   // check for zombie children
+  curr_thread = thread_current ();
+  e = list_begin(&curr_thread->children);
+  while (e != list_end (&curr_thread->children)){
+	child_e = list_entry(e, struct child_elem, elem);
+	if (child_e->pid == child_tid)
+		//do something
+	e = list_next(l);
+  }
   
   return -1;
 }
