@@ -156,6 +156,9 @@ static pid_t syscall_exec (const char *cmd_line){
 	pid = process_execute (cmd_line);
 	if (pid != -1){
 		//add this PID to the current thread's children list
+		child_e = malloc(sizeof(child_elem));
+		child_e->pid = pid;
+		list_push_back (&thread_current->children, &child_e->elem);
 	}
 	return pid;
 }
