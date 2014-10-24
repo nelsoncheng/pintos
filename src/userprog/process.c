@@ -21,6 +21,11 @@
 static thread_func start_process NO_RETURN;
 static bool load (const char *cmdline, void (**eip) (void), void **esp);
 static void process_push_stack (void **esp, char *file_name, int arguments_length);
+struct thread_aux{
+	char* cmd;
+	struct semaphore process_sema;
+	bool loaded;
+};
 
 /* Starts a new thread running a user program loaded from
    FILENAME.  The new thread may be scheduled (and may even exit)
@@ -89,7 +94,11 @@ start_process (void *file_name_)
 int
 process_wait (tid_t child_tid UNUSED) 
 {
-  while(1){;}
+  struct thread *curr_thread = thread_current();
+  struct list_elem *e;
+  
+  // check for zombie children
+  
   return -1;
 }
 
