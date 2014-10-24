@@ -26,6 +26,8 @@ struct list file_list;
 struct list exit_status_list;
 struct semaphore exec_sema;
 struct status_elem
+struct lock file_lock;
+
 {
   pid_t pid;
   int status;
@@ -49,6 +51,7 @@ syscall_init (void)
   list_init (&file_list);
   list_init (&exit_status_list);
   sema_init (&exec_sema, 0);
+  lock_init (&file_lock);
   fd_counter = 2;
 }
 
