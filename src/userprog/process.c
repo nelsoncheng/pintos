@@ -43,9 +43,15 @@ process_execute (const char *file_name)
   if (fn_copy == NULL)
     return TID_ERROR;
   strlcpy (fn_copy, file_name, PGSIZE);
-
+  
+  // Create the auxiliary package
+  struct thread_aux *aux = palloc_get_page(0);
+  sema_init(&aux->process_sema, 0);
+  aux->cmd = fn_copy;
+  aux->loaded = false;
+  
   /* Create a new thread to execute FILE_NAME. */
-  tid = thread_create (file_name, PRI_DEFAULT, start_process, fn_copy);
+  tid = thread_create (file_name, PRI_DEFAULT, start_process, aux);
   if (tid == TID_ERROR)
     palloc_free_page (fn_copy); 
   return tid;
@@ -56,7 +62,7 @@ process_execute (const char *file_name)
 static void
 start_process (void *file_name_)
 {
-  char *file_name = file_name_;
+  char *file_name = file_name_->cmd;
   struct intr_frame if_;
   bool success;
 
