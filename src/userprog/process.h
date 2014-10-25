@@ -29,7 +29,7 @@ struct thread_aux{
 
 struct status_elem
 {
-  pid_t pid;
+  int pid;
   int status;
   struct list_elem elem;
 };
