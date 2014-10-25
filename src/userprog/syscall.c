@@ -104,13 +104,7 @@ static void syscall_halt (void){
 
 static void syscall_exit (int status){
 	struct status_elem *status_e;
-	//struct list_elem *e;
-  /*
-	for(curr_thread = thread_current(); !list_empty (&curr_thread->files);;){
-		e = list_begin (&curr_thread->files);
-		syscall_close (list_entry (e, struct fd_elem, thread_elem)->fd);
-	}
-	
+	/*struct list_elem *e;
 	curr_thread = thread_current ();
 	while (!list_empty (&curr_thread->files)){
 		e = list_begin (&curr_thread->files);
@@ -122,7 +116,8 @@ static void syscall_exit (int status){
 	status_e->pid = thread_current()->tid;
     status_e->status = status;
 	list_push_back (&exit_status_list, &status_e->elem);
-
+	//sema_up(parent_sema);
+	//might need to use write instead of print
 	printf("%s: exit(%d)\n", (char *)(thread_current()->file_name), status);
 	thread_exit();
 }
