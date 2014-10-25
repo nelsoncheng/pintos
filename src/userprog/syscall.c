@@ -178,62 +178,7 @@ static pid_t syscall_exec (const char *cmd_line){
 }
 
 static int syscall_wait (pid_t pid){
-  struct thread *curr_thread;
-  struct list_elem *e;
-  struct child_elem *child_e;
-  struct status_elem *status_e;
-  int child_found = 0;
-  int return_status;
-  
-  if(pid< 0){
-  	return -1;
-  }
-  // check if the pid passed is actually a child of this thread
-  curr_thread = thread_current ();
-  e = list_begin(&curr_thread->children);
-  while (e != list_end (&curr_thread->children)){
-	child_e = list_entry(e, struct child_elem, elem);
-	if (child_e->pid == pid){
-		child_found++;
-		list_remove(e); //remove the child from the list so the parent can't wait twice
-		free(child_e);
-		break;
-	}
-	e = list_next(e);
-  }
-  if (child_found == 0){
-  	return -1;
-  }
-  
-  e = list_begin(&exit_status_list);
-  // look through list of exited threads to see if child is already dead
-  while (e != list_end (&exit_status_list)){
-	status_e = list_entry(e, struct status_elem, elem);
-	if (status_e->pid == pid){
-		list_remove(e);
-		return_status = status_e->status
-		free(status_e);
-		return return_status;
-	}
-	e = list_next(e);
-  }
-  //child is still alive, wait for it
-  sema_down(curr_thread->our_sema);
-  // child should now be on the list of exited threads with live parents
-  e = list_begin(&exit_status_list);
-  while (e != list_end (&exit_status_list)){
-	status_e = list_entry(e, struct status_elem, elem);
-	if (status_e->pid == pid){
-		list_remove(e);
-		return_status = status_e->status
-		free(status_e);
-		return return_status;
-	}
-	e = list_next(e);
-  }
-  //if we get here then that means the child wasn't on the exit list even though it woke the parent
-  printf("syscall_wait shouldn't have gotten here\n");//debug
-  return -1;
+  return process_wait(pid);
 }
 
 static bool syscall_create (const char *file, unsigned initial_size){
