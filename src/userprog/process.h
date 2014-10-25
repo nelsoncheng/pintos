@@ -26,6 +26,14 @@ struct thread_aux{
 	bool loaded;
 	int parent_pid;
 };
+
+struct status_elem
+{
+  pid_t pid;
+  int status;
+  struct list_elem elem;
+};
+
 struct child_elem
 {
   int pid;
