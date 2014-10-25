@@ -103,13 +103,36 @@ static void syscall_halt (void){
 }
 
 static void syscall_exit (int status){
+	struct list_elem *child_list_elem, *status_list_elem;
 	struct status_elem *status_e;
+	struct child_elem child_e;
+	struct thread *curr_thread;
+	int child_pid;
+	
+	curr_thread = thread_current();
 	/*struct list_elem *e;
-	curr_thread = thread_current ();
 	while (!list_empty (&curr_thread->files)){
 		e = list_begin (&curr_thread->files);
 		syscall_close (list_entry (e, struct fd_elem, thread_elem)->fd);
 	}*/
+	
+	child_list_elem = list_begin(&curr_thread->children);
+	while (child_list_elem != list_end(&curr_thread->children)){
+		child_e = list_entry(child_list_elem, struct child_elem, elem);
+		child_pid = child_e->pid;
+		
+		status_list_elem = list_begin(&exit_status_list);
+  		// look through list of exited threads to see if child is already dead, remove its exit status if so
+  		while (status_list_elem != list_end (&exit_status_list)){
+			status_e = list_entry(status_list_elem, struct status_elem, elem);
+			if (status_e->pid == child_pid){
+				list_remove(status_list_elem);
+				free(status_e);
+			}
+			status_list_elem = list_next(status_list_elem);
+  		}
+		child_list_elem = list_next(child_list_elem);
+	}
 	
 	//TODO: condition for if parent is alive
 	status_e = malloc(sizeof(struct status_elem));
@@ -140,7 +163,7 @@ static pid_t syscall_exec (const char *cmd_line){
 }
 
 static int syscall_wait (pid_t pid){
-  struct thread *curr_thread = thread_current();
+  struct thread *curr_thread;
   struct list_elem *e;
   struct child_elem *child_e;
   struct status_elem *status_e;
@@ -166,8 +189,8 @@ static int syscall_wait (pid_t pid){
   if (child_found == 0){
   	return -1;
   }
-   e = list_begin(&exit_status_list);
-   
+  
+  e = list_begin(&exit_status_list);
   // look through list of exited threads to see if child is already dead
   while (e != list_end (&exit_status_list)){
 	status_e = list_entry(e, struct status_elem, elem);
