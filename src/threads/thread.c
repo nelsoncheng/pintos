@@ -24,13 +24,6 @@
    that are ready to run but not actually running. */
 static struct list ready_list;
 
-/* List of all processes.  Processes are added to this list
-   when they are first scheduled and removed when they exit. */
-static struct list all_list;
-
-/* List of threads that have exited but with alive parents that may or may not reap the child */
-static struct list exit_status_list;
-
 /* List of threads that are waiting for a timer to go off */
 static struct semaphore sleep_timer_list;
 

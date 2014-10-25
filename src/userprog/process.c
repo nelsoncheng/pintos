@@ -31,7 +31,7 @@ process_execute (const char *file_name)
   /* Create a new thread to execute FILE_NAME. */
   tid = thread_create (file_name, PRI_DEFAULT, start_process, aux);
   
-  sema_down(&aux->process_sema);
+  sema_down(aux->process_sema);
   if (!&aux->loaded)
   	tid = -1;
   	
@@ -60,14 +60,14 @@ start_process (void *file_name_)
   palloc_free_page (file_name);
   if (!success) {
     ((struct thread_aux*)file_name_)->loaded = false;
-    sema_up(&((struct thread_aux*)file_name_)->process_sema);
+    sema_up(((struct thread_aux*)file_name_)->process_sema);
     palloc_free_page (file_name_);
     thread_exit ();
   }
   
   thread_current()->parent_pid = ((struct thread_aux*)file_name_)->parent_pid;
-  thread_current()->their_sema = (&((struct thread_aux*)file_name_)->process_sema);
-  sema_up(&((struct thread_aux*)file_name_)->process_sema);
+  thread_current()->their_sema = (((struct thread_aux*)file_name_)->process_sema);
+  sema_up(((struct thread_aux*)file_name_)->process_sema);
   palloc_free_page (file_name_);
   
   /* Start the user process by simulating a return from an
@@ -125,7 +125,7 @@ process_wait (tid_t pid)
 	status_e = list_entry(e, struct status_elem, elem);
 	if (status_e->pid == (int)pid){
 		list_remove(e);
-		return_status = status_e->status
+		return_status = status_e->status;
 		free(status_e);
 		return return_status;
 	}
@@ -139,7 +139,7 @@ process_wait (tid_t pid)
 	status_e = list_entry(e, struct status_elem, elem);
 	if (status_e->pid == (int)pid){
 		list_remove(e);
-		return_status = status_e->status
+		return_status = status_e->status;
 		free(status_e);
 		return return_status;
 	}

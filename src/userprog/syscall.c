@@ -349,7 +349,7 @@ static unsigned syscall_tell (int fd){
 	lock_acquire (&file_lock);
 	next_byte = file_tell(process_file);
 	lock_release (&file_lock);
-	return next_byte
+	return next_byte;
 }
 static void syscall_close (int fd){
 	struct fd_elem *fde;
