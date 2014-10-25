@@ -85,23 +85,24 @@ typedef int tid_t;
    blocked state is on a semaphore wait list. */
 struct thread
   {
-    long long final_tick;
+  	long long final_tick;
     /* Owned by thread.c. */
-    tid_t tid;                          /* Thread identifier. */
-    enum thread_status status;          /* Thread state. */
-    char name[16];                      /* Name (for debugging purposes). */
+	tid_t tid;                          /* Thread identifier. */
+	enum thread_status status;          /* Thread state. */
+	char name[16];                      /* Name (for debugging purposes). */
 	char file_name[32];
 	int donated_priorities[8];          /* array containing donated priorities */
-    uint8_t *stack;                     /* Saved stack pointer. */
-    int priority;                       /* Priority. */
+	uint8_t *stack;                     /* Saved stack pointer. */
+	int priority;                       /* Priority. */
 	int base_priority;                  /* Original priority. */
-    struct list_elem allelem;           /* List element for all threads list. */
+	struct list_elem allelem;           /* List element for all threads list. */
 	struct semaphore *sleep_sema;
 	struct lock priority_lock;
 	struct list waiting_on_thread;
-	struct list children;
-	struct list files;
-	
+	struct list children;		    // list of child_elems for this process 
+	struct list files;		    /* List of fd_elems for this process */
+	//int fd_counter;			    /* How many files are currently open by this process */
+	//int parent_pid; 		    /* ID of this thread's parent */
     /* Shared between thread.c and synch.c. */
     struct list_elem elem;              /* List element. */
 
