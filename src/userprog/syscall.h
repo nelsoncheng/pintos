@@ -19,13 +19,6 @@
 #include "threads/synch.h"
 #include "lib/user/syscall.h"
 
-struct status_elem
-{
-  pid_t pid;
-  int status;
-  struct list_elem elem;
-};
-
 struct fd_elem
 {
   int fd;
