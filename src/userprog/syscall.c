@@ -145,6 +145,7 @@ static int syscall_wait (pid_t pid){
   struct child_elem *child_e;
   struct status_elem *status_e;
   int child_found = 0;
+  int return_status;
   
   if(pid< 0){
   	return -1;
@@ -171,7 +172,9 @@ static int syscall_wait (pid_t pid){
 	status_e = list_entry(e, struct status_elem, elem);
 	if (status_e->pid == pid){
 		list_remove(e);
-		return status_e->status;
+		return_status = status_e->status
+		free(status_e);
+		return return_status;
 	}
 	e = list_next(e);
   }
