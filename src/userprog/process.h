@@ -20,6 +20,8 @@
 #include "threads/thread.h"
 #include "threads/vaddr.h"
 
+typedef int pid_t;
+
 struct thread_aux{
 	char* cmd;
 	struct semaphore process_sema;
@@ -29,7 +31,7 @@ struct thread_aux{
 
 struct status_elem
 {
-  int pid;
+  pid_t pid;
   int status;
   struct list_elem elem;
 };
