@@ -149,13 +149,14 @@ static int syscall_wait (pid_t pid){
   if(pid< 0){
   	return -1;
   }
-  // check for zombie children
+  // check if the pid passed is actually a child of this thread
   curr_thread = thread_current ();
   e = list_begin(&curr_thread->children);
   while (e != list_end (&curr_thread->children)){
 	child_e = list_entry(e, struct child_elem, elem);
 	if (child_e->pid == pid){
 		child_found++;
+		list_remove(e); //remove the child from the list so the parent can't wait twice
 		break;
 	}
 	e = list_next(e);
