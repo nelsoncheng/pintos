@@ -178,6 +178,7 @@ static int syscall_wait (pid_t pid){
 	}
 	e = list_next(e);
   }
+  //child is still alive, wait for it
 }
 
 static bool syscall_create (const char *file, unsigned initial_size){
