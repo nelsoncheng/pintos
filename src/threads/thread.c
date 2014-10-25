@@ -28,6 +28,9 @@ static struct list ready_list;
    when they are first scheduled and removed when they exit. */
 static struct list all_list;
 
+/* List of threads that have exited but with alive parents that may or may not reap the child */
+static struct list exit_status_list;
+
 /* List of threads that are waiting for a timer to go off */
 static struct semaphore sleep_timer_list;
 
@@ -97,6 +100,7 @@ thread_init (void)
   lock_init (&tid_lock);
   list_init (&ready_list);
   list_init (&all_list);
+  list_init(&exit_status_list);
   sema_init (&sleep_timer_list, 0);
 
   /* Set up a thread structure for the running thread. */
