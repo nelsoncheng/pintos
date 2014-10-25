@@ -23,7 +23,6 @@ static unsigned syscall_tell (int fd);
 static void syscall_close (int fd);
 
 struct list file_list;
-struct list exit_status_list;
 struct lock file_lock;
 
 //each thread should have its own fd_counter, not the entire kernel. later on change
@@ -36,7 +35,6 @@ syscall_init (void)
 {
   intr_register_int (0x30, 3, INTR_ON, syscall_handler, "syscall");
   list_init (&file_list);
-  list_init (&exit_status_list);
   lock_init (&file_lock);
   fd_counter = 2;
 }
@@ -153,9 +151,12 @@ static void syscall_exit (int status){
 		status_e->pid = thread_current()->tid;
 	        status_e->status = status;
 		list_push_back (&exit_status_list, &status_e->elem);
+		if (curr_thread->their_sema->value == 0){
+			sema_up(curr_thread->their_sema);
+		}
 	}
-	//sema_up(parent_sema);
 	printf("%s: exit(%d)\n", (char *)(thread_current()->file_name), status);
+	
 	thread_exit();
 }
 
@@ -217,6 +218,22 @@ static int syscall_wait (pid_t pid){
 	e = list_next(e);
   }
   //child is still alive, wait for it
+  sema_down(curr_thread->our_sema);
+  // child should now be on the list of exited threads with live parents
+  e = list_begin(&exit_status_list);
+  while (e != list_end (&exit_status_list)){
+	status_e = list_entry(e, struct status_elem, elem);
+	if (status_e->pid == pid){
+		list_remove(e);
+		return_status = status_e->status
+		free(status_e);
+		return return_status;
+	}
+	e = list_next(e);
+  }
+  //if we get here then that means the child wasn't on the exit list even though it woke the parent
+  printf("syscall_wait shouldn't have gotten here\n");//debug
+  return -1;
 }
 
 static bool syscall_create (const char *file, unsigned initial_size){
