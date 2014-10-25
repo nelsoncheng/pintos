@@ -281,11 +281,12 @@ static int syscall_write (int fd, const void *buffer, unsigned size){
 	unsigned i;
 	int status;
 	
-	lock_acquire (&file_lock);
-	if (!is_valid_pointer(buffer) || !is_valid_pointer(buffer + size)){
-		lock_release (&file_lock);
-		syscall_exit(-1);
+	for (i = 0; i < size; ++i){
+		if (!is_valid_pointer(buffer + i)){
+			syscall_exit(-1);
+		}
 	}
+	lock_acquire (&file_lock);
 	status = -1;
 	switch(fd){
 		case STDIN_FILENO:
