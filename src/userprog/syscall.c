@@ -105,11 +105,12 @@ static void syscall_halt (void){
 }
 
 static void syscall_exit (int status){
-	struct list_elem *child_list_elem, *status_list_elem;
+	struct list_elem *child_list_elem, *status_list_elem, *all_list_elem;
 	struct status_elem *status_e;
-	struct child_elem child_e;
+	struct child_elem *child_e;
+	struct thread *thread_e;
 	struct thread *curr_thread;
-	int child_pid;
+	int child_pid, parent_thread_alive;
 	
 	curr_thread = thread_current();
 	/*struct list_elem *e;
@@ -136,13 +137,24 @@ static void syscall_exit (int status){
 		child_list_elem = list_next(child_list_elem);
 	}
 	
-	//TODO: condition for if parent is alive
-	status_e = malloc(sizeof(struct status_elem));
-	status_e->pid = thread_current()->tid;
-        status_e->status = status;
-	list_push_back (&exit_status_list, &status_e->elem);
+	//check if parent is alive by searching through list of all threads 
+	all_list_elem = list_begin(&all_list);
+	while (all_list_elem != list_end(&all_list)){
+		thread_e = list_entry(all_list_elem, struct thread, elem);
+		if ((int)thread_e->tid == curr_thread->parent_pid){
+			parent_thread_alive = 1;
+			break;
+		}
+		all_list_elem = list_next(all_list_elem);
+	}
+	
+	if (parent_thread_alive){
+		status_e = malloc(sizeof(struct status_elem));
+		status_e->pid = thread_current()->tid;
+	        status_e->status = status;
+		list_push_back (&exit_status_list, &status_e->elem);
+	}
 	//sema_up(parent_sema);
-	//might need to use write instead of print
 	printf("%s: exit(%d)\n", (char *)(thread_current()->file_name), status);
 	thread_exit();
 }
