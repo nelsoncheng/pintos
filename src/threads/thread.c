@@ -512,6 +512,7 @@ init_thread (struct thread *t, const char *name, int priority)
   t->base_priority = priority;
   t->magic = THREAD_MAGIC;
   t->sleep_sema = &sleep_timer_list;
+  sema_init(t->our_sema, 1);
 
   list_insert_ordered (&all_list, &t->allelem, *priority_less_func, NULL);
   
