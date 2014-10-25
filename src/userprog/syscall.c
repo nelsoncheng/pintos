@@ -281,11 +281,11 @@ static int syscall_write (int fd, const void *buffer, unsigned size){
 	unsigned i;
 	int status;
 	
+	lock_acquire (&file_lock);
 	if (fd == 1) {
 		putbuf (buffer, size);
 	}
 	status = -1;
-	lock_acquire (&file_lock);
 	
 	if (!is_user_vaddr (buffer) || !is_user_vaddr (buffer + size)){
 		lock_release (&file_lock);
