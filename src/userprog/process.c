@@ -23,7 +23,8 @@ process_execute (const char *file_name)
   
   // Create the auxiliary package
   struct thread_aux *aux = palloc_get_page(0); //not sure if we can use palloc this way
-  sema_init(&aux->process_sema, 1);
+  aux->process_sema = thread_current()->our_sema;
+  aux->parent_pid = thread_current()->tid;
   aux->cmd = fn_copy;
   aux->loaded = true;
   
@@ -63,6 +64,9 @@ start_process (void *file_name_)
     palloc_free_page (file_name_);
     thread_exit ();
   }
+  
+  thread_current()->parent_pid = ((struct thread_aux*)file_name_)->parent_pid;
+  thread_current()->their_sema = (&((struct thread_aux*)file_name_)->process_sema);
   sema_up(&((struct thread_aux*)file_name_)->process_sema);
   palloc_free_page (file_name_);
   
