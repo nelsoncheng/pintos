@@ -22,7 +22,7 @@
 
 struct thread_aux{
 	char* cmd;
-	struct semaphore process_sema;
+	struct semaphore *process_sema;
 	bool loaded;
 	int parent_pid;
 };
