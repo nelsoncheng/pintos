@@ -26,6 +26,8 @@ struct list file_list;
 struct list exit_status_list;
 struct lock file_lock;
 
+//each thread should have its own fd_counter, not the entire kernel. later on change
+//the location of fd_counter to be in thread.h
 int fd_counter;
 
 
