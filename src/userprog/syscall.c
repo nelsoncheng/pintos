@@ -158,6 +158,7 @@ static int syscall_wait (pid_t pid){
 	if (child_e->pid == pid){
 		child_found++;
 		list_remove(e); //remove the child from the list so the parent can't wait twice
+		free(child_e);
 		break;
 	}
 	e = list_next(e);
