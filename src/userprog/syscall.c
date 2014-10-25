@@ -221,24 +221,27 @@ static int syscall_wait (pid_t pid){
 
 static bool syscall_create (const char *file, unsigned initial_size){
 	//return !file ? syscall_exit(-1) : filesys_create (file, initial_size);
+	bool created;
 	if (!is_valid_pointer(file)){
 		syscall_exit(-1);
-		return false;
 	}
 	else
-		filesys_create (file, initial_size);
+		lock_acquire (&file_lock);
+		created = filesys_create (file, initial_size);
+		lock_release (&file_lock);
+		return created;
 }
 
 static bool syscall_remove (const char *file){
-	if (!file)
-		return false;
-	else if (!is_user_vaddr (file)){
-		printf("invalid user virtual address");
+	bool removed;
+	if (!is_valid_pointer(file)){
 		syscall_exit (-1); 
-		return false;
 	}
 	else
-		return filesys_remove (file);
+		lock_acquire (&file_lock);
+		removed = filesys_remove (file);
+		lock_release (&file_lock);
+		return removed;
 }
 
 static int syscall_open (const char *file){
@@ -247,16 +250,14 @@ static int syscall_open (const char *file){
 	int status;
 
 	status = -1;
-	if (!file)
-		return -1;
-	if (!is_user_vaddr (file)){
+	if (!is_valid_pointer(file)){
 		syscall_exit (-1);
-		return -1;
 	}
-		
+	lock_acquire (&file_lock);	
 	process_file = filesys_open (file);
+	lock_release (&file_lock);
 	if (!process_file)
-		return status;
+		syscall_exit(-1);
 
 	fde = (struct fd_elem *)malloc (sizeof (struct fd_elem));
 	if (!fde){
@@ -277,10 +278,16 @@ static int syscall_open (const char *file){
 
 static int syscall_filesize (int fd){
 	struct file *process_file;
+	int length;
 
-	//TODO: find file method
 	process_file = find_fd_elem (fd)->file;
-	return !process_file ? -1 : file_length(process_file);
+	if (!process_file)
+		syscall_exit(-1);
+
+	lock_acquire (&file_lock);
+	length = file_length(process_file);
+	lock_release (&file_lock);
+	return length;
 }
 
 static int syscall_read (int fd, void *buffer, unsigned size){
@@ -340,13 +347,14 @@ static int syscall_write (int fd, const void *buffer, unsigned size){
 			return status;
 		case STDOUT_FILENO:
 			putbuf (buffer, size);
+			status = size;
 			lock_release (&file_lock);
 			return status;
 		default:
 			process_file = find_fd_elem (fd)->file;
 			if (!process_file){
 				lock_release (&file_lock);
-				return status;
+				syscall_exit(-1);
 			}
 			status = file_write (process_file, buffer, size);
 			lock_release (&file_lock);
@@ -363,17 +371,23 @@ static void syscall_seek (int fd, unsigned position){
 	process_file = find_fd_elem (fd)->file;
 	if (!process_file)
 		syscall_exit(-1);
+	lock_acquire (&file_lock);
 	file_seek (process_file, (off_t)position);
+	lock_release (&file_lock);
 }
 
 static unsigned syscall_tell (int fd){
 	struct file *process_file;
+	int next_byte;
 	
 	//TODO: again, find file method
 	process_file = find_fd_elem (fd)->file;
 	if (!process_file)
-		return -1;
-	return file_tell (process_file);
+		syscall_exit(-1);
+	lock_acquire (&file_lock);
+	next_byte = file_tell(process_file);
+	lock_release (&file_lock);
+	return next_byte
 }
 static void syscall_close (int fd){
 	struct fd_elem *fde;
@@ -382,12 +396,12 @@ static void syscall_close (int fd){
 
 	if (!fde) 
 		syscall_exit (-1);
-
+	lock_acquire (&file_lock);
 	file_close (fde->file);
+	lock_release (&file_lock);
 	list_remove (&fde->elem);
 	list_remove (&fde->thread_elem);
 	free (fde);
-	return syscall_exit(1);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
