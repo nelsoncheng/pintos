@@ -114,7 +114,7 @@ static void syscall_exit (int status){
 	//TODO: condition for if parent is alive
 	status_e = malloc(sizeof(struct status_elem));
 	status_e->pid = thread_current()->tid;
-    status_e->status = status;
+        status_e->status = status;
 	list_push_back (&exit_status_list, &status_e->elem);
 	//sema_up(parent_sema);
 	//might need to use write instead of print
@@ -128,7 +128,7 @@ static pid_t syscall_exec (const char *cmd_line){
 	
     //check for bad pointer
 	if (!is_valid_pointer(cmd_line))
-		return -1;
+		syscall_exit(-1);
 	pid = process_execute (cmd_line);
 	if (pid != -1){
 		//add this PID to the current thread's children list
@@ -282,15 +282,11 @@ static int syscall_write (int fd, const void *buffer, unsigned size){
 	int status;
 	
 	lock_acquire (&file_lock);
-	if (fd == 1) {
-		putbuf (buffer, size);
-	}
-	status = -1;
-	
-	if (!is_user_vaddr (buffer) || !is_user_vaddr (buffer + size)){
+	if (!is_valid_pointer(buffer) || !is_valid_pointer(buffer + size)){
 		lock_release (&file_lock);
 		syscall_exit(-1);
 	}
+	status = -1;
 	switch(fd){
 		case STDIN_FILENO:
 			for (i = 0; i != size; ++i)
@@ -299,6 +295,7 @@ static int syscall_write (int fd, const void *buffer, unsigned size){
 			lock_release (&file_lock);
 			return status;
 		case STDOUT_FILENO:
+			putbuf (buffer, size);
 			lock_release (&file_lock);
 			return status;
 		default:
