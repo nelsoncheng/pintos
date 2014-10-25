@@ -24,6 +24,7 @@ struct thread_aux{
 	char* cmd;
 	struct semaphore process_sema;
 	bool loaded;
+	int parent_pid;
 };
 struct child_elem
 {
