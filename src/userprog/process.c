@@ -1,31 +1,8 @@
 #include "userprog/process.h"
-#include <debug.h>
-#include <inttypes.h>
-#include <round.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include "userprog/gdt.h"
-#include "userprog/pagedir.h"
-#include "userprog/tss.h"
-#include "filesys/directory.h"
-#include "filesys/file.h"
-#include "filesys/filesys.h"
-#include "threads/flags.h"
-#include "threads/init.h"
-#include "threads/interrupt.h"
-#include "threads/palloc.h"
-#include "threads/thread.h"
-#include "threads/vaddr.h"
 
 static thread_func start_process NO_RETURN;
 static bool load (const char *cmdline, void (**eip) (void), void **esp);
 static void process_push_stack (void **esp, char *file_name, int arguments_length);
-struct thread_aux{
-	char* cmd;
-	struct semaphore process_sema;
-	bool loaded;
-};
 
 /* Starts a new thread running a user program loaded from
    FILENAME.  The new thread may be scheduled (and may even exit)
@@ -67,7 +44,7 @@ process_execute (const char *file_name)
 static void
 start_process (void *file_name_)
 {
-  char *file_name = file_name_->cmd;
+  char *file_name = ((struct thread_aux*)file_name_)->cmd;
   struct intr_frame if_;
   bool success;
 
@@ -81,12 +58,12 @@ start_process (void *file_name_)
   /* If load failed, quit. */
   palloc_free_page (file_name);
   if (!success) {
-    file_name_->loaded = false;
-    sema_up(&aux->process_sema);
+    ((struct thread_aux*)file_name_)->loaded = false;
+    sema_up(&((struct thread_aux*)file_name_)->process_sema);
     palloc_free_page (file_name_);
     thread_exit ();
   }
-  sema_up(&aux->process_sema);
+  sema_up(&((struct thread_aux*)file_name_)->process_sema);
   palloc_free_page (file_name_);
   
   /* Start the user process by simulating a return from an
@@ -111,39 +88,7 @@ start_process (void *file_name_)
 int
 process_wait (tid_t child_tid UNUSED) 
 {
-  struct thread *curr_thread = thread_current();
-  struct list_elem *e;
-  struct child_elem *child_e, *status_e;
-  int child_found = 0;
-  
-  if(child_tid < 0){
-  	return -1;
-  }
-  // check for zombie children
-  curr_thread = thread_current ();
-  e = list_begin(&curr_thread->children);
-  while (e != list_end (&curr_thread->children)){
-	child_e = list_entry(e, struct child_elem, elem);
-	if (child_e->pid == child_tid){
-		child_found++;
-		break;
-	}
-	e = list_next(e);
-  }
-  if (child_found == 0){
-  	return -1;
-  }
-   e = list_begin(&exit_status_list);
-   
-  // look through list of exited threads to see if child is already dead
-  while (e != list_end (&exit_status_list)){
-	status_e = list_entry(e, struct child_elem, elem);
-	if (status_e->pid == child_tid){
-		list_remove(e);
-		return status_e->status;
-	}
-	e = list_next(e);
-  }
+
   
   return -1;
 }

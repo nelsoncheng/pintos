@@ -1,20 +1,40 @@
 #ifndef USERPROG_SYSCALL_H
 #define USERPROG_SYSCALL_H
 
+#include <stdio.h>
+#include <syscall-nr.h>
+#include "threads/interrupt.h"
+#include "threads/thread.h"
+
+#include "threads/vaddr.h"
+#include "threads/init.h"
+#include "userprog/process.h"
+#include <list.h>
+#include "filesys/file.h"
+#include "filesys/filesys.h"
+#include "threads/palloc.h"
+#include "threads/malloc.h"
+#include "devices/input.h"
+#include "devices/shutdown.h"
+#include "threads/synch.h"
+#include "lib/user/syscall.h"
+
+struct status_elem
+{
+  pid_t pid;
+  int status;
+  struct list_elem elem;
+};
+
+struct fd_elem
+{
+  int fd;
+  struct file *file;
+  struct list_elem elem;
+  struct list_elem thread_elem;
+};
+
 void syscall_init (void);
 static void syscall_handler (struct intr_frame *);
-static void syscall_handler (struct intr_frame *f);
-static void syscall_halt (void);
-static void syscall_exit (int status);
-static pid_t syscall_exec (const char *cmd_line);
-static int syscall_wait (pid_t pid);
-static bool syscall_create (const char *file, unsigned initial_size);
-static bool syscall_remove (const char *file);
-static int syscall_open (const char *file);
-static int syscall_filesize (int fd);
-static int syscall_read (int fd, void *buffer, unsigned size);
-static int syscall_write (int fd, const void *buffer, unsigned size);
-static void syscall_seek (int fd, unsigned position);
-static struct fd_elem * find_fd_elem (int fd);
-static int is_valid_pointer (void *p);
+
 #endif /* userprog/syscall.h */

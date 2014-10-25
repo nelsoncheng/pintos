@@ -100,6 +100,7 @@ struct thread
 	struct lock priority_lock;
 	struct list waiting_on_thread;
 	struct list children;
+	struct list files;
 	
     /* Shared between thread.c and synch.c. */
     struct list_elem elem;              /* List element. */

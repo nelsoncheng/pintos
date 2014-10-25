@@ -1,50 +1,31 @@
 #include "userprog/syscall.h"
-#include <stdio.h>
-#include <syscall-nr.h>
-#include "threads/interrupt.h"
-#include "threads/thread.h"
-
-#include "threads/vaddr.h"
-#include "threads/init.h"
-#include "userprog/process.h"
-#include <list.h>
-#include "filesys/file.h"
-#include "filesys/filesys.h"
-#include "threads/palloc.h"
-#include "threads/malloc.h"
-#include "devices/input.h"
-#include "devices/shutdown.h"
-#include "threads/synch.h"
 
 #define ARG1 (syscall-4)
 #define ARG2 (syscall-8)
 #define ARG3 (syscall-12)
 
 static void syscall_handler (struct intr_frame *);
+static void syscall_halt (void);
+static void syscall_exit (int status);
+static pid_t syscall_exec (const char *cmd_line);
+static int syscall_wait (pid_t pid);
+static bool syscall_create (const char *file, unsigned initial_size);
+static bool syscall_remove (const char *file);
+static int syscall_open (const char *file);
+static int syscall_filesize (int fd);
+static int syscall_read (int fd, void *buffer, unsigned size);
+static int syscall_write (int fd, const void *buffer, unsigned size);
+static void syscall_seek (int fd, unsigned position);
+static struct fd_elem * find_fd_elem (int fd);
+static int is_valid_pointer (void *p);
+static void syscall_seek (int fd, unsigned position);
+static unsigned syscall_tell (int fd);
+static void syscall_close (int fd);
 
 struct list file_list;
 struct list exit_status_list;
 struct lock file_lock;
-struct status_elem
-{
-  pid_t pid;
-  int status;
-  struct list_elem elem;
-};
 
-struct child_elem
-{
-  pid_t pid;
-  struct list_elem elem;
-};
-
-struct fd_elem
-{
-  int fd;
-  struct file *file;
-  struct list_elem elem;
-  struct list_elem thread_elem;
-};
 int fd_counter;
 
 
@@ -122,7 +103,6 @@ static void syscall_halt (void){
 }
 
 static void syscall_exit (int status){
-	struct thread *curr_thread;
 	struct status_elem *status_e;
 	//struct list_elem *e;
   /*
@@ -138,17 +118,18 @@ static void syscall_exit (int status){
 	}*/
 	
 	//TODO: condition for if parent is alive
-	status_e = malloc(sizeof(status_elem));
+	status_e = malloc(sizeof(struct status_elem));
 	status_e->pid = thread_current()->tid;
     status_e->status = status;
 	list_push_back (&exit_status_list, &status_e->elem);
 
-	printf("%s: exit(%d)\n", &thread_current()->file_name, status);
+	printf("%s: exit(%d)\n", (char *)(thread_current()->file_name), status);
 	thread_exit();
 }
 
 static pid_t syscall_exec (const char *cmd_line){
 	pid_t pid;
+	struct child_elem *child_e;
 	
     //check for bad pointer
 	if (!is_valid_pointer(cmd_line))
@@ -156,15 +137,48 @@ static pid_t syscall_exec (const char *cmd_line){
 	pid = process_execute (cmd_line);
 	if (pid != -1){
 		//add this PID to the current thread's children list
-		child_e = malloc(sizeof(child_elem));
+		child_e = malloc(sizeof(struct child_elem));
 		child_e->pid = pid;
-		list_push_back (&thread_current->children, &child_e->elem);
+		list_push_back (&thread_current()->children, &child_e->elem);
 	}
 	return pid;
 }
 
 static int syscall_wait (pid_t pid){
-	return process_wait (pid);
+  struct thread *curr_thread = thread_current();
+  struct list_elem *e;
+  struct child_elem *child_e;
+  struct status_elem *status_e;
+  int child_found = 0;
+  
+  if(pid< 0){
+  	return -1;
+  }
+  // check for zombie children
+  curr_thread = thread_current ();
+  e = list_begin(&curr_thread->children);
+  while (e != list_end (&curr_thread->children)){
+	child_e = list_entry(e, struct child_elem, elem);
+	if (child_e->pid == pid){
+		child_found++;
+		break;
+	}
+	e = list_next(e);
+  }
+  if (child_found == 0){
+  	return -1;
+  }
+   e = list_begin(&exit_status_list);
+   
+  // look through list of exited threads to see if child is already dead
+  while (e != list_end (&exit_status_list)){
+	status_e = list_entry(e, struct status_elem, elem);
+	if (status_e->pid == pid){
+		list_remove(e);
+		return status_e->status;
+	}
+	e = list_next(e);
+  }
 }
 
 static bool syscall_create (const char *file, unsigned initial_size){
@@ -359,7 +373,7 @@ static struct fd_elem * find_fd_elem (int fd){
 }
 
 static int is_valid_pointer (void *p){
-	if ((p == NULL ) || is_user_vaddr(p) || (lookup_page(active_pd(), p, 0) == NULL))
+	if ((p == NULL ) || is_user_vaddr(p) || (pagedir_get_page(thread_current()->pagedir, p) == NULL))
 		return 0;
 	return 1;
 }
