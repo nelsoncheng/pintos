@@ -13,6 +13,7 @@ process_execute (const char *file_name)
 {
   char *fn_copy;
   tid_t tid;
+  struct child_elem * child_e;
 
   /* Make a copy of FILE_NAME.
      Otherwise there's a race between the caller and load(). */
@@ -23,7 +24,7 @@ process_execute (const char *file_name)
   
   // Create the auxiliary package
   struct thread_aux *aux = palloc_get_page(0); //not sure if we can use palloc this way
-  aux->process_sema = thread_current()->our_sema;
+  aux->process_sema = &thread_current()->our_sema;
   aux->parent_pid = thread_current()->tid;
   aux->cmd = fn_copy;
   aux->loaded = true;
@@ -34,7 +35,14 @@ process_execute (const char *file_name)
   sema_down(aux->process_sema);
   if (!&aux->loaded)
   	tid = -1;
-  	
+
+  if (tid != -1){
+		//add this PID to the current thread's children list
+		printf("about to add a child to the list\n");
+		child_e = malloc(sizeof(struct child_elem));
+		child_e->pid = tid;
+		list_push_back (&thread_current()->children, &child_e->elem);
+	}
   if (tid == TID_ERROR)
     palloc_free_page (fn_copy); 
   return tid;
@@ -92,30 +100,40 @@ start_process (void *file_name_)
 int
 process_wait (tid_t pid) 
 {
+  /*
+  int i = 1;
+  while (i){
+	i = i;
+  }
+  */
+ 
   struct thread *curr_thread;
   struct list_elem *e;
   struct child_elem *child_e;
   struct status_elem *status_e;
   int child_found = 0;
   int return_status;
-  
+  printf("inside process wait, pid to wait for = %d\n", (int)pid);
   if(pid< 0){
+	printf("pid < 0\n");
   	return -1;
   }
   // check if the pid passed is actually a child of this thread
   curr_thread = thread_current ();
   e = list_begin(&curr_thread->children);
+  printf("size of children list = %d\n", list_size(&curr_thread->children));
   while (e != list_end (&curr_thread->children)){
+	printf("looping through children\n");
 	child_e = list_entry(e, struct child_elem, elem);
 	if (child_e->pid == (int)pid){
 		child_found++;
 		list_remove(e); //remove the child from the list so the parent can't wait twice
-		free(child_e);
 		break;
 	}
 	e = list_next(e);
   }
   if (child_found == 0){
+	printf("no children found\n");
   	return -1;
   }
   
@@ -131,8 +149,8 @@ process_wait (tid_t pid)
 	}
 	e = list_next(e);
   }
-  //child is still alive, wait for it
-  sema_down(curr_thread->our_sema);
+  //child is still alive if we get to this point, wait for it
+  sema_down(&curr_thread->our_sema);
   // child should now be on the list of exited threads with live parents
   e = list_begin(&exit_status_list);
   while (e != list_end (&exit_status_list)){
@@ -148,6 +166,7 @@ process_wait (tid_t pid)
   //if we get here then that means the child wasn't on the exit list even though it woke the parent
   printf("syscall_wait shouldn't have gotten here\n");//debug
   return -1;
+  
 }
 
 /* Free the current process's resources. */
@@ -190,7 +209,7 @@ process_activate (void)
      interrupts. */
   tss_update ();
 }
-
+
 /* We load ELF binaries.  The following definitions are taken
    from the ELF specification, [ELF1], more-or-less verbatim.  */
 
@@ -298,7 +317,6 @@ load (const char *file_name, void (**eip) (void), void **esp)
       printf ("load: %s: open failed\n", program);
       goto done; 
     }
-  strlcpy (program, t->file_name, strlen(program));
 
   /* Read and verify executable header. */
   if (file_read (file, &ehdr, sizeof ehdr) != sizeof ehdr

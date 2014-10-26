@@ -1,8 +1,8 @@
 #include "userprog/syscall.h"
 
-#define ARG1 (syscall-4)
-#define ARG2 (syscall-8)
-#define ARG3 (syscall-12)
+#define ARG1 (syscall+1)
+#define ARG2 (syscall+2)
+#define ARG3 (syscall+3)
 
 static void syscall_handler (struct intr_frame *);
 static void syscall_halt (void);
@@ -48,7 +48,6 @@ syscall_handler (struct intr_frame *f)
   syscall = f->esp;
   // check if we decrement first, decrement syscalls by 8, 12, 16
   // syscall = syscall - 4;
-  printf("syscall: %d\n", (int)syscall);
   switch (*syscall) {
 	case SYS_WRITE: 
 		status = syscall_write((int)* ARG1, (void*)* ARG2, (unsigned)* ARG3);
@@ -108,7 +107,8 @@ static void syscall_exit (int status){
 	struct child_elem *child_e;
 	struct thread *thread_e;
 	struct thread *curr_thread;
-	int child_pid, parent_thread_alive;
+	int child_pid, parent_thread_alive, test;
+	printf("in exit!!!!!!!!!!!!!!!!!!!!!\n");
 	
 	curr_thread = thread_current();
 	/*struct list_elem *e;
@@ -136,44 +136,45 @@ static void syscall_exit (int status){
 	}
 	
 	//check if parent is alive by searching through list of all threads 
+	/*
 	all_list_elem = list_begin(&all_list);
 	while (all_list_elem != list_end(&all_list)){
-		thread_e = list_entry(all_list_elem, struct thread, elem);
-		if ((int)thread_e->tid == curr_thread->parent_pid){
+		thread_e = list_entry(all_list_elem, struct thread, allelem);
+		test = (int)(thread_e->tid);
+		printf("%d\n", test);
+		printf("%d\n", (int) thread_e);
+		printf("%d\n", (int) &(thread_e->tid));
+		if ((thread_e->tid) == (int)(curr_thread->parent_pid)){
 			parent_thread_alive = 1;
 			break;
 		}
 		all_list_elem = list_next(all_list_elem);
 	}
-	
+	*/
+	/*
 	if (parent_thread_alive){
 		status_e = malloc(sizeof(struct status_elem));
 		status_e->pid = thread_current()->tid;
-	        status_e->status = status;
+	    status_e->status = status;
 		list_push_back (&exit_status_list, &status_e->elem);
 		if (curr_thread->their_sema->value == 0){
 			sema_up(curr_thread->their_sema);
 		}
 	}
-	printf("%s: exit(%d)\n", (char *)(thread_current()->file_name), status);
+	*/
+	printf("%s: exit(%d)\n", (char *)(thread_current()->name), status);
 	
 	thread_exit();
 }
 
 static pid_t syscall_exec (const char *cmd_line){
 	pid_t pid;
-	struct child_elem *child_e;
-	
+	printf("inside exec\n");
     //check for bad pointer
 	if (!is_valid_pointer(cmd_line))
 		syscall_exit(-1);
+	
 	pid = process_execute (cmd_line);
-	if (pid != -1){
-		//add this PID to the current thread's children list
-		child_e = malloc(sizeof(struct child_elem));
-		child_e->pid = pid;
-		list_push_back (&thread_current()->children, &child_e->elem);
-	}
 	return pid;
 }
 
@@ -292,12 +293,12 @@ static int syscall_write (int fd, const void *buffer, unsigned size){
 	struct file * process_file;
 	unsigned i;
 	int status;
-	
-	for (i = 0; i < size; ++i){
-		if (!is_valid_pointer(buffer + i)){
+	for (i = 0; i < size; i++){
+		if (!is_valid_pointer((char *)buffer + i)){
 			syscall_exit(-1);
 		}
 	}
+
 	lock_acquire (&file_lock);
 	status = -1;
 	switch(fd){
@@ -385,7 +386,7 @@ static struct fd_elem * find_fd_elem (int fd){
 }
 
 static int is_valid_pointer (void *p){
-	if ((p == NULL ) || is_user_vaddr(p) || (pagedir_get_page(thread_current()->pagedir, p) == NULL))
+	if ((p == NULL ) || !is_user_vaddr(p) || (pagedir_get_page(thread_current()->pagedir, p) == NULL))
 		return 0;
 	return 1;
 }

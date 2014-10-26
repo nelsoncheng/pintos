@@ -97,7 +97,6 @@ struct thread
 	tid_t tid;                          /* Thread identifier. */
 	enum thread_status status;          /* Thread state. */
 	char name[16];                      /* Name (for debugging purposes). */
-	char file_name[32];
 	int donated_priorities[8];          /* array containing donated priorities */
 	uint8_t *stack;                     /* Saved stack pointer. */
 	int priority;                       /* Priority. */
@@ -110,7 +109,7 @@ struct thread
 	struct list files;		    /* List of fd_elems for this process */
 	//int fd_counter;			    /* How many files are currently open by this process */
 	int parent_pid; 		    /* ID of this thread's parent */
-	struct semaphore *our_sema; 	    /* Semaphore belonging to this thread */
+	struct semaphore our_sema; 	    /* Semaphore belonging to this thread */
 	struct semaphore *their_sema; 	    /* Semaphore belonging to this thread's parent */
     /* Shared between thread.c and synch.c. */
     struct list_elem elem;              /* List element. */
