@@ -25,6 +25,7 @@ struct thread_aux{
 	struct semaphore *process_sema;
 	bool loaded;
 	int parent_pid;
+	struct list *parent_exit_list;
 };
 
 struct status_elem

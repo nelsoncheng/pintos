@@ -93,7 +93,7 @@ thread_init (void)
   lock_init (&tid_lock);
   list_init (&ready_list);
   list_init (&all_list);
-  list_init(&exit_status_list);
+  //list_init(&exit_status_list);
   sema_init (&sleep_timer_list, 0);
 
   /* Set up a thread structure for the running thread. */
@@ -501,6 +501,7 @@ init_thread (struct thread *t, const char *name, int priority)
   lock_init(&t->priority_lock);
   list_init(&t->waiting_on_thread);
   list_init(&t->children);
+  list_init(&t->exit_status_list);
   t->final_tick = 0;
   t->status = THREAD_BLOCKED;
   strlcpy (t->name, name, sizeof t->name);
@@ -510,9 +511,11 @@ init_thread (struct thread *t, const char *name, int priority)
   t->magic = THREAD_MAGIC;
   t->sleep_sema = &sleep_timer_list;
   sema_init(&t->our_sema, 0);
+  t->fd_counter = 2;
+  list_init(&t->files);
 
-  list_insert_ordered (&all_list, &t->allelem, *priority_less_func, NULL);
-  
+  //list_insert_ordered (&all_list, &t->allelem, *priority_less_func, NULL);
+  list_push_back (&all_list, &t->allelem);
 }
 
 /* Allocates a SIZE-byte frame at the top of thread T's stack and

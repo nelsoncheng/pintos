@@ -22,21 +22,24 @@ static void syscall_seek (int fd, unsigned position);
 static unsigned syscall_tell (int fd);
 static void syscall_close (int fd);
 
-struct list file_list;
 struct lock file_lock;
 
 //each thread should have its own fd_counter, not the entire kernel. later on change
 //the location of fd_counter to be in thread.h
-int fd_counter;
 
+//struct exit_status_struct
+//{
+//	int status;
+//	pid_t pid;	
+//}
+
+//static struct exit_status_struct [128];
 
 void
 syscall_init (void) 
 {
   intr_register_int (0x30, 3, INTR_ON, syscall_handler, "syscall");
-  list_init (&file_list);
   lock_init (&file_lock);
-  fd_counter = 2;
 }
 
 static void
@@ -46,46 +49,85 @@ syscall_handler (struct intr_frame *f)
   int status;
   
   syscall = f->esp;
+  if (!is_valid_pointer(syscall)){
+		syscall_exit(-1);
+  }
   // check if we decrement first, decrement syscalls by 8, 12, 16
   // syscall = syscall - 4;
   switch (*syscall) {
 	case SYS_WRITE: 
+		if (!is_valid_pointer(ARG1) || !is_valid_pointer(ARG2) || !is_valid_pointer(ARG3)){
+		syscall_exit(-1);
+ 		}
 		status = syscall_write((int)* ARG1, (void*)* ARG2, (unsigned)* ARG3);
 		break;
 	case SYS_EXIT:
+		if (!is_valid_pointer(ARG1)){
+		syscall_exit(-1);
+ 		}
 		syscall_exit((int)* ARG1);
 		break;
     case SYS_HALT:
         syscall_halt();
 		break;
 	case SYS_EXEC:
+		if (!is_valid_pointer(ARG1)){
+		syscall_exit(-1);
+ 		}
         status = syscall_exec((char*)* ARG1);
 		break;
 	case SYS_WAIT:
+		if (!is_valid_pointer(ARG1)){
+		syscall_exit(-1);
+ 		}
         status = syscall_wait((pid_t)* ARG1);
 		break;
 	case SYS_CREATE:
+		if (!is_valid_pointer(ARG1) || !is_valid_pointer(ARG2)){
+		syscall_exit(-1);
+ 		}
         status = syscall_create((char*)* ARG1, (unsigned)* ARG2);
 		break;
 	case SYS_REMOVE:
+		if (!is_valid_pointer(ARG1)){
+		syscall_exit(-1);
+ 		}
         status = syscall_remove((char*)* ARG1);
 		break;
 	case SYS_OPEN:
+		if (!is_valid_pointer(ARG1)){
+		syscall_exit(-1);
+ 		}
         status = syscall_open((char*)* ARG1);
 		break;
 	case SYS_FILESIZE:
+		if (!is_valid_pointer(ARG1)){
+		syscall_exit(-1);
+ 		}
         status = syscall_filesize((int)* ARG1);
 		break;
 	case SYS_READ:
+		if (!is_valid_pointer(ARG1) || !is_valid_pointer(ARG2) || !is_valid_pointer(ARG3)){
+		syscall_exit(-1);
+ 		}
         status = syscall_read((int)* ARG1, (void*)* ARG2, (unsigned)* ARG3);
 		break;
 	case SYS_SEEK:
+		if (!is_valid_pointer(ARG1) || !is_valid_pointer(ARG2)){
+		syscall_exit(-1);
+ 		}
         syscall_seek((int)* ARG1, (unsigned)* ARG2);
 		break;
 	case SYS_TELL:
+		if (!is_valid_pointer(ARG1)){
+		syscall_exit(-1);
+ 		}
         status = syscall_tell((int)* ARG1);
 		break;
 	case SYS_CLOSE:
+		if (!is_valid_pointer(ARG1)){
+		syscall_exit(-1);
+ 		}
         syscall_close((int)* ARG1);
 		break;
 	default:
@@ -108,7 +150,9 @@ static void syscall_exit (int status){
 	struct thread *thread_e;
 	struct thread *curr_thread;
 	int child_pid, parent_thread_alive, test;
-	printf("in exit!!!!!!!!!!!!!!!!!!!!!\n");
+	char * name_ptr, save_ptr;
+
+	//printf("in exit!!!!!!!!!!!!!!!!!!!!!\n");
 	
 	curr_thread = thread_current();
 	/*struct list_elem *e;
@@ -122,13 +166,13 @@ static void syscall_exit (int status){
 		child_e = list_entry(child_list_elem, struct child_elem, elem);
 		child_pid = child_e->pid;
 		
-		status_list_elem = list_begin(&exit_status_list);
+		status_list_elem = list_begin(&curr_thread->exit_status_list);
   		// look through list of exited threads to see if child is already dead, remove its exit status if so
-  		while (status_list_elem != list_end (&exit_status_list)){
+  		while (status_list_elem != list_end (&curr_thread->exit_status_list)){
 			status_e = list_entry(status_list_elem, struct status_elem, elem);
 			if (status_e->pid == child_pid){
 				list_remove(status_list_elem);
-				free(status_e);
+				//free(status_e);
 			}
 			status_list_elem = list_next(status_list_elem);
   		}
@@ -151,25 +195,29 @@ static void syscall_exit (int status){
 		all_list_elem = list_next(all_list_elem);
 	}
 	*/
-	/*
-	if (parent_thread_alive){
+	
+	//if (parent_thread_alive){
+	if (true){
+		//printf("adding to exit status list\n");
+		//printf("sizeof struct status_elem: %d\n", sizeof(struct status_elem));
 		status_e = malloc(sizeof(struct status_elem));
-		status_e->pid = thread_current()->tid;
+		status_e->pid = curr_thread->tid;
 	    status_e->status = status;
-		list_push_back (&exit_status_list, &status_e->elem);
-		if (curr_thread->their_sema->value == 0){
+		list_push_back (curr_thread->parent_exit_list, &status_e->elem);
+		if (!list_empty(&curr_thread->their_sema->waiters)){
 			sema_up(curr_thread->their_sema);
 		}
 	}
-	*/
-	printf("%s: exit(%d)\n", (char *)(thread_current()->name), status);
+	
+	name_ptr = strtok_r (thread_current()->name, " ", &save_ptr);
+	printf("%s: exit(%d)\n", name_ptr, status);
 	
 	thread_exit();
 }
 
 static pid_t syscall_exec (const char *cmd_line){
 	pid_t pid;
-	printf("inside exec\n");
+	//printf("inside exec\n");
     //check for bad pointer
 	if (!is_valid_pointer(cmd_line))
 		syscall_exit(-1);
@@ -220,11 +268,11 @@ static int syscall_open (const char *file){
 	process_file = filesys_open (file);
 	lock_release (&file_lock);
 	if (!process_file)
-		syscall_exit(-1);
+		syscall_exit(0);
 
 	fde = (struct fd_elem *)malloc (sizeof (struct fd_elem));
 	if (!fde){
-		printf("Not enough memory\n");
+		//printf("Not enough memory\n");
 		file_close (process_file);
 		return status;
 	}
@@ -232,9 +280,8 @@ static int syscall_open (const char *file){
 	/* allocate fde an ID, put fde in file_list, put fde in the current thread's file_list */
 	fde->file = process_file; 
 	//TODO: write allocator for fd
-	fde->fd = fd_counter++;
-	list_push_back (&file_list, &fde->elem);
-	list_push_back (&thread_current ()->files, &fde->thread_elem);
+	fde->fd = thread_current()->fd_counter++;
+	list_push_back (&thread_current()->files, &fde->elem);
 	status = fde->fd;
 	return status;
 }
@@ -260,12 +307,13 @@ static int syscall_read (int fd, void *buffer, unsigned size){
 
 	status = -1;
 	//TODO: Add file_lock to thread
-	lock_acquire (&file_lock);
 
-	if (!is_user_vaddr (buffer) || !is_user_vaddr (buffer + size)){
-		lock_release (&file_lock);
-		syscall_exit(-1);
+	for (i = 0; i < size; i++){
+		if (!is_valid_pointer((char *)buffer + i)){
+			syscall_exit(-1);
+		}
 	}
+	lock_acquire (&file_lock);
 	switch(fd){
 		case STDIN_FILENO:
 			for (i = 0; i != size; ++i)
@@ -302,6 +350,9 @@ static int syscall_write (int fd, const void *buffer, unsigned size){
 	lock_acquire (&file_lock);
 	status = -1;
 	switch(fd){
+		case -1:
+			syscall_exit(-1);
+			break;
 		case STDIN_FILENO:
 			for (i = 0; i != size; ++i)
 				*(uint8_t *)(buffer + i) = input_getc ();
@@ -357,13 +408,12 @@ static void syscall_close (int fd){
   
 	fde = find_fd_elem (fd);
 
-	if (!fde) 
+	if (!fde || (fd == 0) || (fd == 1)) 
 		syscall_exit (-1);
 	lock_acquire (&file_lock);
 	file_close (fde->file);
 	lock_release (&file_lock);
 	list_remove (&fde->elem);
-	list_remove (&fde->thread_elem);
 	free (fde);
 }
 
@@ -374,8 +424,8 @@ static struct fd_elem * find_fd_elem (int fd){
 	struct fd_elem *curr_elem;
 	struct list_elem *e;
 	
-	e = list_begin(&file_list);
-	while (e != list_end (&file_list)){
+	e = list_begin(&thread_current()->files);
+	while (e != list_end (&thread_current()->files)){
 		curr_elem = list_entry(e, struct fd_elem, elem);
 		if (curr_elem->fd == fd)
 			return curr_elem;

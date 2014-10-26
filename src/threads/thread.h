@@ -21,7 +21,6 @@ typedef int tid_t;
 #define TID_ERROR ((tid_t) -1)          /* Error value for tid_t. */
 
 /* List of threads that have exited but with alive parents that may or may not reap the child */
-static struct list exit_status_list;
 
 /* List of all processes.  Processes are added to this list
    when they are first scheduled and removed when they exit. */
@@ -114,6 +113,11 @@ struct thread
     /* Shared between thread.c and synch.c. */
     struct list_elem elem;              /* List element. */
 
+	struct list exit_status_list;
+	struct list *parent_exit_list;
+
+	int fd_counter;
+
 #ifdef USERPROG
     /* Owned by userprog/process.c. */
     uint32_t *pagedir;                  /* Page directory. */
@@ -127,7 +131,7 @@ struct thread
    If true, use multi-level feedback queue scheduler.
    Controlled by kernel command-line option "-o mlfqs". */
 extern bool thread_mlfqs;
-
+//static struct list exit_status_list;
 void thread_init (void);
 void thread_start (void);
 

@@ -24,7 +24,6 @@ struct fd_elem
   int fd;
   struct file *file;
   struct list_elem elem;
-  struct list_elem thread_elem;
 };
 
 void syscall_init (void);

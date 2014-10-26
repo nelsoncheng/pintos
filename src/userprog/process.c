@@ -8,6 +8,7 @@ static void process_push_stack (void **esp, char *file_name, int arguments_lengt
    FILENAME.  The new thread may be scheduled (and may even exit)
    before process_execute() returns.  Returns the new process's
    thread id, or TID_ERROR if the thread cannot be created. */
+
 tid_t
 process_execute (const char *file_name) 
 {
@@ -23,11 +24,12 @@ process_execute (const char *file_name)
   strlcpy (fn_copy, file_name, PGSIZE);
   
   // Create the auxiliary package
-  struct thread_aux *aux = palloc_get_page(0); //not sure if we can use palloc this way
+  struct thread_aux *aux = palloc_get_page(0);
   aux->process_sema = &thread_current()->our_sema;
   aux->parent_pid = thread_current()->tid;
   aux->cmd = fn_copy;
   aux->loaded = true;
+  aux->parent_exit_list = &thread_current()->exit_status_list;
   
   /* Create a new thread to execute FILE_NAME. */
   tid = thread_create (file_name, PRI_DEFAULT, start_process, aux);
@@ -35,14 +37,19 @@ process_execute (const char *file_name)
   sema_down(aux->process_sema);
   if (!&aux->loaded)
   	tid = -1;
+  palloc_free_page (aux);
 
   if (tid != -1){
 		//add this PID to the current thread's children list
-		printf("about to add a child to the list\n");
+		//printf("about to add a child to the list\n");
 		child_e = malloc(sizeof(struct child_elem));
 		child_e->pid = tid;
+		//printf("%d\n", child_e->pid);
 		list_push_back (&thread_current()->children, &child_e->elem);
+		struct child_elem *test = list_entry(list_tail(&thread_current()->children)->prev, struct child_elem, elem);
+		//printf("%d\n", test->pid);
 	}
+  
   if (tid == TID_ERROR)
     palloc_free_page (fn_copy); 
   return tid;
@@ -69,14 +76,13 @@ start_process (void *file_name_)
   if (!success) {
     ((struct thread_aux*)file_name_)->loaded = false;
     sema_up(((struct thread_aux*)file_name_)->process_sema);
-    palloc_free_page (file_name_);
     thread_exit ();
   }
   
   thread_current()->parent_pid = ((struct thread_aux*)file_name_)->parent_pid;
   thread_current()->their_sema = (((struct thread_aux*)file_name_)->process_sema);
+  thread_current()->parent_exit_list = (((struct thread_aux*)file_name_)->parent_exit_list);
   sema_up(((struct thread_aux*)file_name_)->process_sema);
-  palloc_free_page (file_name_);
   
   /* Start the user process by simulating a return from an
      interrupt, implemented by intr_exit (in
@@ -100,30 +106,26 @@ start_process (void *file_name_)
 int
 process_wait (tid_t pid) 
 {
-  /*
-  int i = 1;
-  while (i){
-	i = i;
-  }
-  */
- 
   struct thread *curr_thread;
   struct list_elem *e;
   struct child_elem *child_e;
   struct status_elem *status_e;
   int child_found = 0;
-  int return_status;
-  printf("inside process wait, pid to wait for = %d\n", (int)pid);
+  int return_status, i;
+  
+  //printf("inside process wait, pid to wait for = %d\n", (int)pid);
   if(pid< 0){
-	printf("pid < 0\n");
+	//printf("pid < 0\n");
   	return -1;
   }
+  struct child_elem *test = list_entry(list_tail(&thread_current()->children)->prev, struct child_elem, elem);
+		//printf("%d\n", test->pid);
   // check if the pid passed is actually a child of this thread
   curr_thread = thread_current ();
   e = list_begin(&curr_thread->children);
-  printf("size of children list = %d\n", list_size(&curr_thread->children));
+  //printf("size of children list = %d\n", list_size(&curr_thread->children));
   while (e != list_end (&curr_thread->children)){
-	printf("looping through children\n");
+	//printf("looping through children\n");
 	child_e = list_entry(e, struct child_elem, elem);
 	if (child_e->pid == (int)pid){
 		child_found++;
@@ -133,13 +135,14 @@ process_wait (tid_t pid)
 	e = list_next(e);
   }
   if (child_found == 0){
-	printf("no children found\n");
+	//printf("no children found\n");
   	return -1;
   }
   
-  e = list_begin(&exit_status_list);
+  e = list_begin(&curr_thread->exit_status_list);
+  //printf("size of exit status list = %d\n", list_size(&curr_thread->exit_status_list));
   // look through list of exited threads to see if child is already dead
-  while (e != list_end (&exit_status_list)){
+  while (e != list_end (&curr_thread->exit_status_list)){
 	status_e = list_entry(e, struct status_elem, elem);
 	if (status_e->pid == (int)pid){
 		list_remove(e);
@@ -149,11 +152,12 @@ process_wait (tid_t pid)
 	}
 	e = list_next(e);
   }
+
   //child is still alive if we get to this point, wait for it
   sema_down(&curr_thread->our_sema);
   // child should now be on the list of exited threads with live parents
-  e = list_begin(&exit_status_list);
-  while (e != list_end (&exit_status_list)){
+  e = list_begin(&curr_thread->exit_status_list);
+  while (e != list_end (&curr_thread->exit_status_list)){
 	status_e = list_entry(e, struct status_elem, elem);
 	if (status_e->pid == (int)pid){
 		list_remove(e);
@@ -164,7 +168,7 @@ process_wait (tid_t pid)
 	e = list_next(e);
   }
   //if we get here then that means the child wasn't on the exit list even though it woke the parent
-  printf("syscall_wait shouldn't have gotten here\n");//debug
+  //printf("syscall_wait shouldn't have gotten here\n");//debug
   return -1;
   
 }
@@ -535,7 +539,7 @@ setup_stack (void **esp, char *file_name)
       else
         palloc_free_page (kpage);
     }
-  hex_dump((int)*esp, *esp, PHYS_BASE - *esp, 1);
+  //hex_dump((int)*esp, *esp, PHYS_BASE - *esp, 1);
   return success;
 }
 
