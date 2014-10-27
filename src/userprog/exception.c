@@ -71,6 +71,8 @@ exception_print_stats (void)
 static void
 kill (struct intr_frame *f) 
 {
+	char * name_ptr, save_ptr;
+
   /* This interrupt is one (probably) caused by a user process.
      For example, the process might have tried to access unmapped
      virtual memory (a page fault).  For now, we simply kill the
@@ -86,10 +88,17 @@ kill (struct intr_frame *f)
     case SEL_UCSEG:
       /* User's code segment, so it's a user exception, as we
          expected.  Kill the user process.  */
-      printf ("%s: dying due to interrupt %#04x (%s).\n",
-              thread_name (), f->vec_no, intr_name (f->vec_no));
-      intr_dump_frame (f);
-      thread_exit (); 
+      //printf ("%s: dying due to interrupt %#04x (%s).\n",
+              //thread_name (), f->vec_no, intr_name (f->vec_no));
+      intr_dump_frame (f); 
+	   int retval;                                                    
+          asm volatile                                                   
+            ("pushl %[arg0]; pushl %[number]; int $0x30; addl $8, %%esp" 
+               : "=a" (retval)                                           
+               : [number] "i" (1),                                  
+                 [arg0] "g" (-1)                                       
+               : "memory");                                              
+          retval;
 
     case SEL_KCSEG:
       /* Kernel's code segment, which indicates a kernel bug.
@@ -147,17 +156,17 @@ page_fault (struct intr_frame *f)
   not_present = (f->error_code & PF_P) == 0;
   write = (f->error_code & PF_W) != 0;
   user = (f->error_code & PF_U) != 0;
-
+  
   /* To implement virtual memory, delete the rest of the function
      body, and replace it with code that brings in the page to
      which fault_addr refers. */
-  printf ("Page fault at %p: %s error %s page in %s context.\n",
-          fault_addr,
-          not_present ? "not present" : "rights violation",
-          write ? "writing" : "reading",
-          user ? "user" : "kernel");
+  //printf ("Page fault at %p: %s error %s page in %s context.\n",
+          //fault_addr,
+          //not_present ? "not present" : "rights violation",
+          //write ? "writing" : "reading",
+          //user ? "user" : "kernel");
 
-  printf("There is no crying in Pintos!\n");
+  //printf("There is no crying in Pintos!\n");
 
   kill (f);
 }

@@ -24,17 +24,6 @@ static void syscall_close (int fd);
 
 struct lock file_lock;
 
-//each thread should have its own fd_counter, not the entire kernel. later on change
-//the location of fd_counter to be in thread.h
-
-//struct exit_status_struct
-//{
-//	int status;
-//	pid_t pid;	
-//}
-
-//static struct exit_status_struct [128];
-
 void
 syscall_init (void) 
 {
@@ -134,9 +123,8 @@ syscall_handler (struct intr_frame *f)
 		status = -1;
   }
 
-  if (status != -1) {
-    f->eax = status;
-  }
+  f->eax = status;
+  
 }
 
 static void syscall_halt (void){
@@ -154,12 +142,13 @@ static void syscall_exit (int status){
 
 	//printf("in exit!!!!!!!!!!!!!!!!!!!!!\n");
 	
+	//close all of the current thread's open files
 	curr_thread = thread_current();
-	/*struct list_elem *e;
+	struct list_elem *e;
 	while (!list_empty (&curr_thread->files)){
 		e = list_begin (&curr_thread->files);
-		syscall_close (list_entry (e, struct fd_elem, thread_elem)->fd);
-	}*/
+		syscall_close (list_entry (e, struct fd_elem, elem)->fd);
+	}
 	
 	child_list_elem = list_begin(&curr_thread->children);
 	while (child_list_elem != list_end(&curr_thread->children)){
@@ -266,9 +255,10 @@ static int syscall_open (const char *file){
 	}
 	lock_acquire (&file_lock);	
 	process_file = filesys_open (file);
+	//file_deny_write (*process_file); //////////// 
 	lock_release (&file_lock);
 	if (!process_file)
-		syscall_exit(0);
+		return status;
 
 	fde = (struct fd_elem *)malloc (sizeof (struct fd_elem));
 	if (!fde){
@@ -303,16 +293,16 @@ static int syscall_filesize (int fd){
 static int syscall_read (int fd, void *buffer, unsigned size){
 	struct file * process_file;
 	unsigned i;
-	int status;
+	int status = -1;
 
-	status = -1;
-	//TODO: Add file_lock to thread
-
+	if (fd > thread_current()->fd_counter)
+		syscall_exit(-1);
 	for (i = 0; i < size; i++){
 		if (!is_valid_pointer((char *)buffer + i)){
 			syscall_exit(-1);
 		}
 	}
+
 	lock_acquire (&file_lock);
 	switch(fd){
 		case STDIN_FILENO:
@@ -341,12 +331,16 @@ static int syscall_write (int fd, const void *buffer, unsigned size){
 	struct file * process_file;
 	unsigned i;
 	int status;
+
+	if (fd > thread_current()->fd_counter)
+		syscall_exit(-1);
 	for (i = 0; i < size; i++){
 		if (!is_valid_pointer((char *)buffer + i)){
 			syscall_exit(-1);
 		}
 	}
 
+	
 	lock_acquire (&file_lock);
 	status = -1;
 	switch(fd){
@@ -354,10 +348,8 @@ static int syscall_write (int fd, const void *buffer, unsigned size){
 			syscall_exit(-1);
 			break;
 		case STDIN_FILENO:
-			for (i = 0; i != size; ++i)
-				*(uint8_t *)(buffer + i) = input_getc ();
-			status = size;
 			lock_release (&file_lock);
+			syscall_exit(-1);
 			return status;
 		case STDOUT_FILENO:
 			putbuf (buffer, size);
@@ -410,9 +402,12 @@ static void syscall_close (int fd){
 
 	if (!fde || (fd == 0) || (fd == 1)) 
 		syscall_exit (-1);
+
 	lock_acquire (&file_lock);
 	file_close (fde->file);
 	lock_release (&file_lock);
+	
+	thread_current()->fd_counter--;
 	list_remove (&fde->elem);
 	free (fde);
 }

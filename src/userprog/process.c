@@ -28,26 +28,20 @@ process_execute (const char *file_name)
   aux->process_sema = &thread_current()->our_sema;
   aux->parent_pid = thread_current()->tid;
   aux->cmd = fn_copy;
-  aux->loaded = true;
+
   aux->parent_exit_list = &thread_current()->exit_status_list;
   
   /* Create a new thread to execute FILE_NAME. */
   tid = thread_create (file_name, PRI_DEFAULT, start_process, aux);
   
   sema_down(aux->process_sema);
-  if (!&aux->loaded)
-  	tid = -1;
   palloc_free_page (aux);
 
   if (tid != -1){
 		//add this PID to the current thread's children list
-		//printf("about to add a child to the list\n");
 		child_e = malloc(sizeof(struct child_elem));
 		child_e->pid = tid;
-		//printf("%d\n", child_e->pid);
 		list_push_back (&thread_current()->children, &child_e->elem);
-		struct child_elem *test = list_entry(list_tail(&thread_current()->children)->prev, struct child_elem, elem);
-		//printf("%d\n", test->pid);
 	}
   
   if (tid == TID_ERROR)
@@ -74,11 +68,9 @@ start_process (void *file_name_)
   /* If load failed, quit. */
   palloc_free_page (file_name);
   if (!success) {
-    ((struct thread_aux*)file_name_)->loaded = false;
     sema_up(((struct thread_aux*)file_name_)->process_sema);
     thread_exit ();
-  }
-  
+  }   
   thread_current()->parent_pid = ((struct thread_aux*)file_name_)->parent_pid;
   thread_current()->their_sema = (((struct thread_aux*)file_name_)->process_sema);
   thread_current()->parent_exit_list = (((struct thread_aux*)file_name_)->parent_exit_list);

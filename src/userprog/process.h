@@ -23,7 +23,6 @@
 struct thread_aux{
 	char* cmd;
 	struct semaphore *process_sema;
-	bool loaded;
 	int parent_pid;
 	struct list *parent_exit_list;
 };
