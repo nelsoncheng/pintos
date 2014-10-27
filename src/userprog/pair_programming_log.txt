@@ -1,0 +1,37 @@
+10/19, 2:00p - 7:00p, Nelson and Jonathan, 5 hours
+Driver Order and Time Length:
+Nelson, 2 hours
+Jonathan, 1 hours
+Nelson, 2 hours
+
+10/23, 7:00p - 12:00p, Nelson and Jonathan, 5 hours
+Driver Order and Time Length:
+Jonathan, 2 hours
+Nelson, 1 hours
+Jonathan, 2 hours
+
+10/24, 6:00p - 1:00a, Nelson and Jonathan, 7 hours
+Driver Order and Time Length:
+Jonathan, 2 hours
+Nelson, 1 hours
+Jonathan, 2 hours
+Nelson, 2 hours
+
+10/25, 1:00p - 1:00a, Nelson and Jonathan, 12 hours
+Driver Order and Time Length:
+Jonathan, 2 hours
+Nelson, 2 hours
+Jonathan, 2 hours
+Nelson, 2 hours
+Jonathan, 2 hours
+Nelson, 2 hours
+
+10/26, 10:00a - 11:00p, Nelson and Jonathan, 13 hours
+Driver Order and Time Length:
+Jonathan, 2 hours
+Nelson, 2 hours
+Jonathan, 2 hours
+Nelson, 1 hours
+Jonathan, 2 hours
+Nelson, 2 hours
+Jonathan, 2 hours
