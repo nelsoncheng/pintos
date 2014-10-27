@@ -41,8 +41,8 @@ syscall_handler (struct intr_frame *f)
   if (!is_valid_pointer(syscall)){
 		syscall_exit(-1);
   }
-  // check if we decrement first, decrement syscalls by 8, 12, 16
-  // syscall = syscall - 4;
+
+  //Nelson driving
   switch (*syscall) {
 	case SYS_WRITE: 
 		if (!is_valid_pointer(ARG1) || !is_valid_pointer(ARG2) || !is_valid_pointer(ARG3)){
@@ -83,6 +83,7 @@ syscall_handler (struct intr_frame *f)
  		}
         status = syscall_remove((char*)* ARG1);
 		break;
+    //Jonathan driving
 	case SYS_OPEN:
 		if (!is_valid_pointer(ARG1)){
 		syscall_exit(-1);
@@ -131,6 +132,7 @@ static void syscall_halt (void){
 	shutdown_power_off();
 }
 
+//Jonathan driving
 static void syscall_exit (int status){
 	struct list_elem *child_list_elem, *status_list_elem, *all_list_elem;
 	struct status_elem *status_e;
@@ -139,8 +141,6 @@ static void syscall_exit (int status){
 	struct thread *curr_thread;
 	int child_pid, parent_thread_alive, test;
 	char * name_ptr, save_ptr;
-
-	//printf("in exit!!!!!!!!!!!!!!!!!!!!!\n");
 	
 	//close all of the current thread's open files
 	curr_thread = thread_current();
@@ -187,8 +187,6 @@ static void syscall_exit (int status){
 	
 	//if (parent_thread_alive){
 	if (true){
-		//printf("adding to exit status list\n");
-		//printf("sizeof struct status_elem: %d\n", sizeof(struct status_elem));
 		status_e = malloc(sizeof(struct status_elem));
 		status_e->pid = curr_thread->tid;
 	    status_e->status = status;
@@ -198,6 +196,7 @@ static void syscall_exit (int status){
 		}
 	}
 	
+	// exit print out message
 	name_ptr = strtok_r (thread_current()->name, " ", &save_ptr);
 	printf("%s: exit(%d)\n", name_ptr, status);
 	
@@ -206,7 +205,7 @@ static void syscall_exit (int status){
 
 static pid_t syscall_exec (const char *cmd_line){
 	pid_t pid;
-	//printf("inside exec\n");
+;
     //check for bad pointer
 	if (!is_valid_pointer(cmd_line))
 		syscall_exit(-1);
@@ -219,9 +218,11 @@ static int syscall_wait (pid_t pid){
   return process_wait(pid);
 }
 
+//Nelson driving
 static bool syscall_create (const char *file, unsigned initial_size){
-	//return !file ? syscall_exit(-1) : filesys_create (file, initial_size);
 	bool created;
+
+	// bad pointer checking
 	if (!is_valid_pointer(file)){
 		syscall_exit(-1);
 	}
@@ -234,6 +235,8 @@ static bool syscall_create (const char *file, unsigned initial_size){
 
 static bool syscall_remove (const char *file){
 	bool removed;
+
+	// pointer checking
 	if (!is_valid_pointer(file)){
 		syscall_exit (-1); 
 	}
@@ -250,16 +253,19 @@ static int syscall_open (const char *file){
 	int status;
 
 	status = -1;
+
+	// pointer checking
 	if (!is_valid_pointer(file)){
 		syscall_exit (-1);
 	}
 	lock_acquire (&file_lock);	
 	process_file = filesys_open (file);
-	//file_deny_write (*process_file); //////////// 
+	//file_deny_write (*process_file);
 	lock_release (&file_lock);
 	if (!process_file)
 		return status;
 
+	//retrieve the process file
 	fde = (struct fd_elem *)malloc (sizeof (struct fd_elem));
 	if (!fde){
 		//printf("Not enough memory\n");
@@ -269,7 +275,6 @@ static int syscall_open (const char *file){
 	
 	/* allocate fde an ID, put fde in file_list, put fde in the current thread's file_list */
 	fde->file = process_file; 
-	//TODO: write allocator for fd
 	fde->fd = thread_current()->fd_counter++;
 	list_push_back (&thread_current()->files, &fde->elem);
 	status = fde->fd;
@@ -290,6 +295,7 @@ static int syscall_filesize (int fd){
 	return length;
 }
 
+//Nelson driving
 static int syscall_read (int fd, void *buffer, unsigned size){
 	struct file * process_file;
 	unsigned i;
@@ -297,6 +303,8 @@ static int syscall_read (int fd, void *buffer, unsigned size){
 
 	if (fd > thread_current()->fd_counter)
 		syscall_exit(-1);
+
+	// bad pointer checking
 	for (i = 0; i < size; i++){
 		if (!is_valid_pointer((char *)buffer + i)){
 			syscall_exit(-1);
@@ -304,6 +312,7 @@ static int syscall_read (int fd, void *buffer, unsigned size){
 	}
 
 	lock_acquire (&file_lock);
+	// 3 possible types of fd
 	switch(fd){
 		case STDIN_FILENO:
 			for (i = 0; i != size; ++i)
@@ -326,6 +335,7 @@ static int syscall_read (int fd, void *buffer, unsigned size){
 	}
 }
 
+//Jonathan driving
 static int syscall_write (int fd, const void *buffer, unsigned size){
 
 	struct file * process_file;
@@ -343,6 +353,7 @@ static int syscall_write (int fd, const void *buffer, unsigned size){
 	
 	lock_acquire (&file_lock);
 	status = -1;
+	//3 possible types of fd
 	switch(fd){
 		case -1:
 			syscall_exit(-1);
@@ -370,10 +381,10 @@ static int syscall_write (int fd, const void *buffer, unsigned size){
 	return size;
 }
 
+//Nelson driving
 static void syscall_seek (int fd, unsigned position){
 	struct file *process_file;
 	
-	//TODO: again, find file method
 	process_file = find_fd_elem (fd)->file;
 	if (!process_file)
 		syscall_exit(-1);
@@ -386,7 +397,6 @@ static unsigned syscall_tell (int fd){
 	struct file *process_file;
 	int next_byte;
 	
-	//TODO: again, find file method
 	process_file = find_fd_elem (fd)->file;
 	if (!process_file)
 		syscall_exit(-1);
@@ -400,6 +410,7 @@ static void syscall_close (int fd){
   
 	fde = find_fd_elem (fd);
 
+    // bad fd checking
 	if (!fde || (fd == 0) || (fd == 1)) 
 		syscall_exit (-1);
 
@@ -415,6 +426,10 @@ static void syscall_close (int fd){
 ////////////////////////////////////////////////////////////////////////////////////////
 //Support methods
 ////////////////////////////////////////////////////////////////////////////////////////
+
+//Nelson driving
+
+// loops through list of file elements, finds matching fd
 static struct fd_elem * find_fd_elem (int fd){
 	struct fd_elem *curr_elem;
 	struct list_elem *e;
@@ -430,6 +445,9 @@ static struct fd_elem * find_fd_elem (int fd){
 	return NULL;
 }
 
+//Jonathan driving
+
+//checks for bad pointer
 static int is_valid_pointer (void *p){
 	if ((p == NULL ) || !is_user_vaddr(p) || (pagedir_get_page(thread_current()->pagedir, p) == NULL))
 		return 0;

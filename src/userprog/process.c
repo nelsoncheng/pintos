@@ -70,7 +70,9 @@ start_process (void *file_name_)
   if (!success) {
     sema_up(((struct thread_aux*)file_name_)->process_sema);
     thread_exit ();
-  }   
+  }
+  
+  //Jonathan driving
   thread_current()->parent_pid = ((struct thread_aux*)file_name_)->parent_pid;
   thread_current()->their_sema = (((struct thread_aux*)file_name_)->process_sema);
   thread_current()->parent_exit_list = (((struct thread_aux*)file_name_)->parent_exit_list);
@@ -105,19 +107,15 @@ process_wait (tid_t pid)
   int child_found = 0;
   int return_status, i;
   
-  //printf("inside process wait, pid to wait for = %d\n", (int)pid);
+  //Jonathan driving
   if(pid< 0){
-	//printf("pid < 0\n");
   	return -1;
   }
   struct child_elem *test = list_entry(list_tail(&thread_current()->children)->prev, struct child_elem, elem);
-		//printf("%d\n", test->pid);
   // check if the pid passed is actually a child of this thread
   curr_thread = thread_current ();
   e = list_begin(&curr_thread->children);
-  //printf("size of children list = %d\n", list_size(&curr_thread->children));
   while (e != list_end (&curr_thread->children)){
-	//printf("looping through children\n");
 	child_e = list_entry(e, struct child_elem, elem);
 	if (child_e->pid == (int)pid){
 		child_found++;
@@ -127,12 +125,10 @@ process_wait (tid_t pid)
 	e = list_next(e);
   }
   if (child_found == 0){
-	//printf("no children found\n");
   	return -1;
   }
   
   e = list_begin(&curr_thread->exit_status_list);
-  //printf("size of exit status list = %d\n", list_size(&curr_thread->exit_status_list));
   // look through list of exited threads to see if child is already dead
   while (e != list_end (&curr_thread->exit_status_list)){
 	status_e = list_entry(e, struct status_elem, elem);
@@ -144,7 +140,7 @@ process_wait (tid_t pid)
 	}
 	e = list_next(e);
   }
-
+  //Nelson driving
   //child is still alive if we get to this point, wait for it
   sema_down(&curr_thread->our_sema);
   // child should now be on the list of exited threads with live parents
@@ -295,6 +291,8 @@ load (const char *file_name, void (**eip) (void), void **esp)
   fn_copy = palloc_get_page (0);
   if (fn_copy == NULL)
     return TID_ERROR;
+	
+  //Nelson driving
   strlcpy (fn_copy, file_name, PGSIZE);
 
   /* Allocate and activate page directory. */
@@ -313,6 +311,7 @@ load (const char *file_name, void (**eip) (void), void **esp)
       printf ("load: %s: open failed\n", program);
       goto done; 
     }
+  file_deny_write(file);
 
   /* Read and verify executable header. */
   if (file_read (file, &ehdr, sizeof ehdr) != sizeof ehdr
@@ -535,6 +534,7 @@ setup_stack (void **esp, char *file_name)
   return success;
 }
 
+//Nelson driving
 static void
 process_push_stack (void **esp, char *file_name, int arguments_length)
 {

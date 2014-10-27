@@ -104,18 +104,18 @@ struct thread
 	struct list_elem allelem;           /* List element for all threads list. */
 	struct semaphore *sleep_sema;
 	struct lock priority_lock;
-	struct list waiting_on_thread;
-	struct list children;		    // list of child_elems for this process 
-	struct list files;		    /* List of fd_elems for this process */
-	//int fd_counter;			    /* How many files are currently open by this process */
-	int parent_pid; 		    /* ID of this thread's parent */
-	struct semaphore our_sema; 	    /* Semaphore belonging to this thread */
+	struct list waiting_on_thread;	
+	struct list children;		   		 /* list of child_elems for this process */
+	struct list files;		    		/* List of fd_elems for this process */
+	int parent_pid; 		   			 /* ID of this thread's parent */
+	struct semaphore our_sema; 	    	/* Semaphore belonging to this thread */
 	struct semaphore *their_sema; 	    /* Semaphore belonging to this thread's parent */
     /* Shared between thread.c and synch.c. */
     struct list_elem elem;              /* List element. */
 
 	struct list exit_status_list;
 	struct list *parent_exit_list;
+	struct file *file;
 
 	int fd_counter;
 
