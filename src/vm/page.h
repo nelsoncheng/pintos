@@ -2,18 +2,14 @@
 #define __VM_PAGE_H
 
 
-
-struct page{
-  // owner of the page
-  struct thread* owner;
-  // user page virtual address
-  void *upage;
-  // file associated with the process
+struct pte{
   struct file *fileptr;
-  // kernel page
-  void *kpage;
-  // list for holding pages
-  struct list_elem elem;
+  // the byte we're at in the current file
+  int file_offset;
+  // tells if the page is read only or not
+  bool read_only;
+  //tells what kind of page this is 
+  int page_type;
 };
 
 
