@@ -2,7 +2,6 @@
 #define __VM_FRAME_H
 
 #include <stdio.h>
-#include <hash.h>
 #include "threads/synch.h"
 #include "threads/palloc.h"
 #include "threads/malloc.h"
@@ -10,7 +9,7 @@
 #include "userprog/pagedir.h"
 #include "userprog/syscall.h"
 
-static struct hash frames_list;
+static struct list frame_list;
 static struct lock frame_lock;
 
 struct frame{
