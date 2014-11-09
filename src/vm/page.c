@@ -1,7 +1,8 @@
 #include "vm/page.h"
 #include "threads/malloc.h"
 
-struct pte * page_new(int type, int offset, bool read_or_write, struct file * source_file, bool zero){
+struct pte * page_new(page_type type, int offset, bool read_or_write, struct file * source_file, bool zero){
+  
   struct pte new_pte* = (struct pte *) malloc(sizeof(struct pte));
   if (new_pte == NULL){
     PANIC("Not enough memory to make a page table entry");
