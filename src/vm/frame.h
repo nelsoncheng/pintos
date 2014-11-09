@@ -19,10 +19,10 @@ struct frame{
   void* upage;
   // who owns this frame
   struct thread* owner;
-  // used for swapping, assign counter during creation?
-  int recent;
-  // for storing it in a hash list if we need
-  struct hash_elem elem;
+  // if the frame is pinned
+  bool pin;
+  // for storing it in a list if we need
+  struct list_elem elem;
   
 };
 
