@@ -20,11 +20,19 @@
 #include "threads/thread.h"
 #include "threads/vaddr.h"
 
+struct fd_elem
+{
+  int fd;
+  struct file *file;
+  struct list_elem elem;
+};
+
 struct thread_aux{
 	char* cmd;
 	struct semaphore *process_sema;
 	int parent_pid;
 	struct list *parent_exit_list;
+	struct loaded *child_loaded;
 };
 
 struct status_elem

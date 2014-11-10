@@ -28,6 +28,7 @@ process_execute (const char *file_name)
   aux->process_sema = &thread_current()->our_sema;
   aux->parent_pid = thread_current()->tid;
   aux->cmd = fn_copy;
+  aux->child_loaded = &thread_current()->child_loaded;
 
   aux->parent_exit_list = &thread_current()->exit_status_list;
   
@@ -35,17 +36,18 @@ process_execute (const char *file_name)
   tid = thread_create (file_name, PRI_DEFAULT, start_process, aux);
   
   sema_down(aux->process_sema);
-  palloc_free_page (aux);
-
-  if (tid != -1){
+  //printf("loaded: %d\n", thread_current()->child_loaded.child_loaded);
+  if (tid != -1 && thread_current()->child_loaded.child_loaded){
 		//add this PID to the current thread's children list
 		child_e = malloc(sizeof(struct child_elem));
 		child_e->pid = tid;
 		list_push_back (&thread_current()->children, &child_e->elem);
 	}
   
-  if (tid == TID_ERROR)
-    palloc_free_page (fn_copy); 
+  if (thread_current()->child_loaded.child_loaded == false){
+	return TID_ERROR;
+  }
+  palloc_free_page (aux);
   return tid;
 }
 
@@ -54,6 +56,9 @@ process_execute (const char *file_name)
 static void
 start_process (void *file_name_)
 {
+  struct fd_elem * fde;
+  struct file * process_file;
+  char *name_ptr, save_ptr;
   char *file_name = ((struct thread_aux*)file_name_)->cmd;
   struct intr_frame if_;
   bool success;
@@ -67,12 +72,26 @@ start_process (void *file_name_)
 
   /* If load failed, quit. */
   palloc_free_page (file_name);
+  name_ptr = strtok_r(thread_current()->name, " ", &save_ptr);
   if (!success) {
+	((struct thread_aux*)file_name_)->child_loaded->child_loaded = false;
+	printf("%s: exit(%d)\n", name_ptr, -1);
     sema_up(((struct thread_aux*)file_name_)->process_sema);
-    thread_exit ();
+    thread_exit();
   }
   
   //Jonathan driving
+  //add the executable to the list of open files, then deny writes 
+  process_file = filesys_open(name_ptr);
+  if (process_file == NULL) printf("file is null\n");
+  fde = (struct fd_elem *)malloc (sizeof (struct fd_elem));
+  fde->file = process_file; 
+  fde->fd = thread_current()->fd_counter++;
+  list_push_back (&thread_current()->files, &fde->elem);
+  file_deny_write(process_file);
+
+  //give the child access to some parts of the parent
+  ((struct thread_aux*)file_name_)->child_loaded->child_loaded = true;
   thread_current()->parent_pid = ((struct thread_aux*)file_name_)->parent_pid;
   thread_current()->their_sema = (((struct thread_aux*)file_name_)->process_sema);
   thread_current()->parent_exit_list = (((struct thread_aux*)file_name_)->parent_exit_list);
@@ -311,7 +330,6 @@ load (const char *file_name, void (**eip) (void), void **esp)
       printf ("load: %s: open failed\n", program);
       goto done; 
     }
-  file_deny_write(file);
 
   /* Read and verify executable header. */
   if (file_read (file, &ehdr, sizeof ehdr) != sizeof ehdr

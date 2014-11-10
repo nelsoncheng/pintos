@@ -315,7 +315,9 @@ void
 thread_exit (void) 
 {
   ASSERT (!intr_context ());
-
+  //char * name_ptr, save_ptr;
+  //name_ptr = strtok_r (thread_current()->name, " ", &save_ptr);
+  //printf("%s: exit(%d)\n", name_ptr, status);
 #ifdef USERPROG
   process_exit ();
 #endif

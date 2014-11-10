@@ -90,6 +90,12 @@ static struct list all_list;
    only because they are mutually exclusive: only a thread in the
    ready state is on the run queue, whereas only a thread in the
    blocked state is on a semaphore wait list. */
+
+struct loaded
+{
+	bool child_loaded;
+};
+
 struct thread
   {
   	long long final_tick;
@@ -118,6 +124,8 @@ struct thread
 	struct file *file;
 
 	int fd_counter;
+	
+	struct loaded child_loaded;
 
 #ifdef USERPROG
     /* Owned by userprog/process.c. */

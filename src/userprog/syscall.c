@@ -169,32 +169,15 @@ static void syscall_exit (int status){
 	}
 	
 	//check if parent is alive by searching through list of all threads 
-	/*
-	all_list_elem = list_begin(&all_list);
-	while (all_list_elem != list_end(&all_list)){
-		thread_e = list_entry(all_list_elem, struct thread, allelem);
-		test = (int)(thread_e->tid);
-		printf("%d\n", test);
-		printf("%d\n", (int) thread_e);
-		printf("%d\n", (int) &(thread_e->tid));
-		if ((thread_e->tid) == (int)(curr_thread->parent_pid)){
-			parent_thread_alive = 1;
-			break;
-		}
-		all_list_elem = list_next(all_list_elem);
-	}
-	*/
 	
-	//if (parent_thread_alive){
-	if (true){
-		status_e = malloc(sizeof(struct status_elem));
-		status_e->pid = curr_thread->tid;
-	    status_e->status = status;
-		list_push_back (curr_thread->parent_exit_list, &status_e->elem);
-		if (!list_empty(&curr_thread->their_sema->waiters)){
-			sema_up(curr_thread->their_sema);
-		}
+	status_e = malloc(sizeof(struct status_elem));
+	status_e->pid = curr_thread->tid;
+	status_e->status = status;
+	list_push_back (curr_thread->parent_exit_list, &status_e->elem);
+	if (!list_empty(&curr_thread->their_sema->waiters)){
+		sema_up(curr_thread->their_sema);
 	}
+
 	
 	// exit print out message
 	name_ptr = strtok_r (thread_current()->name, " ", &save_ptr);
@@ -260,7 +243,6 @@ static int syscall_open (const char *file){
 	}
 	lock_acquire (&file_lock);	
 	process_file = filesys_open (file);
-	//file_deny_write (*process_file);
 	lock_release (&file_lock);
 	if (!process_file)
 		return status;
@@ -271,8 +253,7 @@ static int syscall_open (const char *file){
 		//printf("Not enough memory\n");
 		file_close (process_file);
 		return status;
-	}
-	
+	}	
 	/* allocate fde an ID, put fde in file_list, put fde in the current thread's file_list */
 	fde->file = process_file; 
 	fde->fd = thread_current()->fd_counter++;

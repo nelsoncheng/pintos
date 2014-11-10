@@ -19,13 +19,6 @@
 #include "threads/synch.h"
 #include "lib/user/syscall.h"
 
-struct fd_elem
-{
-  int fd;
-  struct file *file;
-  struct list_elem elem;
-};
-
 void syscall_init (void);
 static void syscall_handler (struct intr_frame *);
 
