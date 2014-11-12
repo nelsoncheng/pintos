@@ -501,7 +501,7 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
       
       /* Get a page of memory. */
       bool zero = page_zero_bytes == PGSIZE ? 1 : 0; //check if zero page needed
-      page_table_entry = page_new(EXEC, current_ofs, writable, file, zero);
+      page_table_entry = page_new(EXECUTABLE_PAGE, current_ofs, writable, file, zero);
 
       /* Put the page's information in the page directory for future loading */
       bool success = false;
