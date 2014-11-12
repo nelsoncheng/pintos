@@ -1,7 +1,7 @@
 #ifndef __VM_PAGE_H
 #define __VM_PAGE_H
 
-typedef enum {FILE, EXEC, SWAP, ZERO} page_type;
+typedef enum {MMAP_FILE_PAGE, EXECUTABLE_PAGE, SWAP_PAGE, ZERO_PAGE} page_type;
 
 struct pte{
   struct file *fileptr;
