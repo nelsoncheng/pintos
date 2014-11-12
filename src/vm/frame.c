@@ -6,7 +6,7 @@ void frame_init(){
 }
 
 void * frame_get(void * vpage, bool zero_page){
-  void * kpage = palloc_get_page ( PAL_USER | (zero ? PAL_ZERO : 0) );
+  void * kpage = palloc_get_page ( PAL_USER | (zero_page ? PAL_ZERO : 0) );
   
   if(kpage == NULL) {
     lock_acquire(&frame_lock);
