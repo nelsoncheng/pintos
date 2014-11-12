@@ -12,7 +12,7 @@ struct pte * page_new(page_type type, int offset, bool read_or_write, struct fil
     new_pte->file_ptr = NULL;
     new_pte->file_offset = NULL;
     new_pte->read_only = NULL;
-    new_pte->page_type = 0;
+    new_pte->page_type = ZERO_PAGE;
   } else {
     new_pte->file_ptr = source_file
     new_pte->file_offset = offset
