@@ -10,8 +10,9 @@ void * frame_get(void * vpage, bool zero_page, struct pte * sup_pte){
   
   if(kpage == NULL) {
     lock_acquire(&frame_lock);
-    //TODO: evict a page
     lock_release(&frame_lock);
+    //TODO: evict a page
+    PANIC ("no more frames, need to implement evict");
     return kpage;
   }
   
