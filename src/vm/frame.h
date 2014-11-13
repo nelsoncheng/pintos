@@ -9,6 +9,8 @@
 #include "userprog/pagedir.h"
 #include "userprog/syscall.h"
 #include "vm/page.h"
+#include <stdbool.h>
+#include <stdlib.h>
 
 static struct list frame_list;
 static struct lock frame_lock;
