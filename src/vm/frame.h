@@ -12,6 +12,9 @@
 static struct list frame_list;
 static struct lock frame_lock;
 
+void * frame_get(void * vpage, bool zero_page);
+void frame_init();
+
 struct frame{
   // physical address location
   void* paddr;
