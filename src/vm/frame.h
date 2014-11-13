@@ -8,6 +8,7 @@
 #include "threads/thread.h"
 #include "userprog/pagedir.h"
 #include "userprog/syscall.h"
+#include "vm/page.h"
 
 static struct list frame_list;
 static struct lock frame_lock;
@@ -26,7 +27,8 @@ struct frame{
   bool pin;
   // for storing it in a list if we need
   struct list_elem elem;
-  
+  //when a page gets paged in to physical memory, store its supplemental page here in case it later on gets evicted
+  struct pte* saved_page;
 };
 
 
