@@ -126,6 +126,8 @@ struct thread
 	int fd_counter;
 	
 	struct loaded child_loaded;
+	
+	void * kernel_stack_pointer;
 
 #ifdef USERPROG
     /* Owned by userprog/process.c. */
