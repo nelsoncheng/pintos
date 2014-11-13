@@ -37,6 +37,8 @@ syscall_handler (struct intr_frame *f)
   int *syscall;
   int status;
   
+  //save the value of the kernel's stack at the beginning of entering the kernel
+  thread_current()->kernel_stack_pointer = f->esp;
   syscall = f->esp;
   if (!is_valid_pointer(syscall)){
 		syscall_exit(-1);
