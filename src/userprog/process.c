@@ -488,8 +488,9 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
   ASSERT ((read_bytes + zero_bytes) % PGSIZE == 0);
   ASSERT (pg_ofs (upage) == 0);
   ASSERT (ofs % PGSIZE == 0);
-
-  file_seek (file, ofs);
+  
+  off_t offset = ofs;
+  
   while (read_bytes > 0 || zero_bytes > 0) 
     {
       /* Calculate how to fill this page.
@@ -501,20 +502,20 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
       
       /* Get a page of memory. */
       bool zero = page_zero_bytes == PGSIZE ? 1 : 0; //check if zero page needed
-      page_table_entry = page_new(EXECUTABLE_PAGE, current_ofs, writable, file, zero);
+      page_table_entry = page_new(EXECUTABLE_PAGE, offset, writable, file, zero);
 
       /* Put the page's information in the page directory for future loading */
-      bool success = false;
       if (!((pagedir_get_page(thread_current()->pagedir, upage) == 0) && (pagedir_set_pte(t->pagedir, upage, page_table_entry))){
       	free(page_table_entry);
       	return false;
       }
-
       /* Advance. */
+      offset += PGSIZE;
+      upage += PGSIZE;
       read_bytes -= page_read_bytes;
       zero_bytes -= page_zero_bytes;
-      upage += PGSIZE;
     }
+  file_seek (file, ofs);
   return true;
 }
 
