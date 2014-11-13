@@ -24,6 +24,6 @@ struct pte * page_new(page_type type, int offset, bool read_or_write, struct fil
   return new_pte;
 }
 
-bool page_is_stack_fault(void * stack_ptr, void * fault_address){
+//bool page_is_stack_fault(void * stack_ptr, void * fault_address){
   //TODO: devise a way to determine if a page fault's faulting address was meang to be a stack access
-}
+//}
