@@ -4,6 +4,9 @@
 #include "userprog/gdt.h"
 #include "threads/interrupt.h"
 #include "threads/thread.h"
+#include "vm/page.h"
+#include "vm/frame.h"
+#include "vm/swap.h"
 
 /* Number of page faults processed. */
 static long long page_fault_cnt;
@@ -132,10 +135,11 @@ kill (struct intr_frame *f)
 static void
 page_fault (struct intr_frame *f) 
 {
+  uint8_t frame;
   bool not_present;  /* True: not-present page, false: writing r/o page. */
   bool write;        /* True: access was write, false: access was read. */
   bool user;         /* True: access by user, false: access by kernel. */
-  void *fault_addr;  /* Fault address. */
+  void *fault_addr, *page, *sup_pte, *stack_ptr;  /* Fault address. */
 
   /* Obtain faulting address, the virtual address that was
      accessed to cause the fault.  It may point to code or to
@@ -157,20 +161,82 @@ page_fault (struct intr_frame *f)
   not_present = (f->error_code & PF_P) == 0;
   write = (f->error_code & PF_W) != 0;
   user = (f->error_code & PF_U) != 0;
-
-  //Nelson driving
   
-  /* To implement virtual memory, delete the rest of the function
-     body, and replace it with code that brings in the page to
-     which fault_addr refers. */
-  //printf ("Page fault at %p: %s error %s page in %s context.\n",
-          //fault_addr,
-          //not_present ? "not present" : "rights violation",
-          //write ? "writing" : "reading",
-          //user ? "user" : "kernel");
-
-  //printf("There is no crying in Pintos!\n");
-
-  kill (f);
+  //get the page that contains the faulting virtual address
+  uint32_t faulting_address = (uint32_t) fault_addr;
+  page = (void*) (faulting_address & PTE_ADDR);
+  //get the supplemental page
+  sup_pte = pagedir_get_page(thread_current()->pagedir, page);
+  //get the appropriate stack pointer (kernel or user)
+  if (f->cs == SEL_UCSEG){
+  	stack_ptr = f->esp;
+  } else {
+  	stack_ptr = thread_current()->kernel_stack_pointer;
+  }
+  if (sup_pte == NULL || !stack_page_fault(stack_ptr, fault_addr)){
+  	//do the magical syscall_exiting if the fault address is unmapped and not a stack access, hope this works
+  	 int retval;                                                    
+          asm volatile                                                   
+            ("pushl %[arg0]; pushl %[number]; int $0x30; addl $8, %%esp" 
+               : "=a" (retval)                                           
+               : [number] "i" (1),                                  
+                 [arg0] "g" (-1)                                       
+               : "memory");                                              
+          retval;
+  } 
+  if (sup_pte == NULL){
+  	//if we get in here then we need a new stack page
+  	frame = frame_get(page, true, NULL);
+  	pagedir_clear_page(thread_current()->pagedir, page);
+  	bool success = pagedir_set_page(thread_current()->pagedir, page, frame, true);
+  	if (!success){
+  		//change later
+  		PANIC("For some reason pagedir_set_page didnt work");
+  	}
+  	pagedir_set_accessed(thread_current()->pagedir, page, true);
+  	pagedir_set_dirty(thread_current()->pagedir, page, true);
+  	return;
+  }
+  //if the fault wasnt a stack access, then the supplemental page becomes relevant
+  struct pte * supplemental_pte = (struct pte *) sup_pte;
+  frame = frame_get(page, true, supplemental_pte);
+  bool dirty_bit, success;
+  
+  if (supplemental_pte->page_type == EXECUTABLE_PAGE){
+  	dirty = false;
+  } else if (supplemental_pte->page_type == MMAP_FILE_PAGE){
+  	//?????????????????????
+  } else if (supplemental_pte->page_type == ZERO_PAGE){
+  	memset (frame, 0, PGSIZE);
+  	dirty_bit = false;
+  } else if (supplemental_pte->page_type == SWAP_PAGE){
+  	//need to actually make swap first
+  	dirty = true;
+  } else {
+  	PANIC ("Supplemental page didnt have a type");
+  }
+  pagedir_clear_page(thread_current()->pagedir, page);
+  success = pagedir_set_page(thread_current()->pagedir, page, frame, true);
+  if (!success){
+  	//change later
+  	PANIC("For some reason pagedir_set_page didnt work");
+  }
+  pagedir_set_accessed(thread_current()->pagedir, page, true);
+  pagedir_set_dirty(thread_current()->pagedir, page, dirty_bit);
 }
+
+
+//Page fault helper methods:
+
+bool stack_page_fault(void * stack_ptr, void * fault_address){
+	bool success = true;
+	if (fault_address > PHYS_BASE)
+		success = false;
+	if (address < STACK_BOTTOM)
+		success = false;
+	if ((stack_ptr - 32) > fault_address)
+		success = false;
+	return success;
+}
+
 
