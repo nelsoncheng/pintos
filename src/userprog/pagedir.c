@@ -152,12 +152,19 @@ pagedir_get_page (uint32_t *pd, const void *uaddr)
 
   ASSERT (is_user_vaddr (uaddr));
   
+  //keep the original functionality
   pte = lookup_page (pd, uaddr, false);
-  if (pte != NULL && (*pte & PTE_P) != 0)
-    return pte_get_page (*pte) + pg_ofs (uaddr);
-  else
-    return NULL;
-}
+  if (pte != NULL && (*pte & PTE_P) != 0){
+     return pte_get_page (*pte) + pg_ofs (uaddr);
+  }
+  
+  // The following code deals with the situation where the pd contains a pointer to a not yet mapped struct pte *
+  if (pte == NULL || *pte == NULL)
+      return NULL;
+  } else if (*pte != NULL){
+      return (void *) *pte;//in this case, there is a pte but its unmapped to physical memory.
+      //this means the pte is a pointer to a supplemental pte
+  }
 
 /* Marks user virtual page UPAGE "not present" in page
    directory PD.  Later accesses to the page will fault.  Other
