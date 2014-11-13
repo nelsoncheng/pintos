@@ -9,8 +9,20 @@
 #include "threads/palloc.h"
 #include "threads/thread.h"
 #include "devices/block.h"
+#include <bitmap.h>
 #include "userprog/pagedir.h"
 #include "threads/vaddr.h"
+
+
+struct block *swap_block
+struct lock block_lock;
+int size;
+int page_to_sector_ratio;
+struct bitmap *free_list;
+
+struct swap_member{
+  
+}
 
 // initializing our lists locks, and anything else
 void swap_init(void);
