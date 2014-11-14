@@ -214,11 +214,14 @@ page_fault (struct intr_frame *f)
 	syscall_file_lock_release();
   } else if (supplemental_pte->ptype == MMAP_FILE_PAGE){
   	//extra credit?
+  	printf("how did we even get here (mmap file page)\n");
   } else if (supplemental_pte->ptype == ZERO_PAGE){
   	memset (frame, 0, PGSIZE);
   	dirty_bit = false;
   } else if (supplemental_pte->ptype == SWAP_PAGE){
+  	frame_pin(frame, true, true);
   	swap_retrieve(supplemental_pte->member, frame);
+  	frame_pin(frame, true, false);
   	dirty = true;
   } else {
   	PANIC ("Supplemental page didnt have a type");
