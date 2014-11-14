@@ -202,14 +202,19 @@ page_fault (struct intr_frame *f)
   frame = frame_get(page, true, supplemental_pte);
   bool dirty_bit, success;
   
-  if (supplemental_pte->page_type == EXECUTABLE_PAGE){
+  if (supplemental_pte->ptype == EXECUTABLE_PAGE){
   	dirty = false;
-  } else if (supplemental_pte->page_type == MMAP_FILE_PAGE){
-  	//?????????????????????
-  } else if (supplemental_pte->page_type == ZERO_PAGE){
+  	if (file_read (supplemental_pte->file_ptr, frame, supplemental_pte->bytes_to_read) != (int) supplemental_pte->bytes_to_read)
+	{
+		palloc_free_page (frame);
+		PANIC ("File_read in page fault handler didnt read enough bytes");
+	}
+  } else if (supplemental_pte->ptype == MMAP_FILE_PAGE){
+  	//extra credit?
+  } else if (supplemental_pte->ptype p== ZERO_PAGE){
   	memset (frame, 0, PGSIZE);
   	dirty_bit = false;
-  } else if (supplemental_pte->page_type == SWAP_PAGE){
+  } else if (supplemental_pte->ptype == SWAP_PAGE){
   	//need to actually make swap first
   	dirty = true;
   } else {
