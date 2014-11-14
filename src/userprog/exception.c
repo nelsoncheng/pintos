@@ -204,14 +204,17 @@ page_fault (struct intr_frame *f)
   
   if (supplemental_pte->ptype == EXECUTABLE_PAGE){
   	dirty = false;
+  	syscall_file_lock_acquire();
   	if (file_read (supplemental_pte->file_ptr, frame, supplemental_pte->bytes_to_read) != (int) supplemental_pte->bytes_to_read)
 	{
+		syscall_file_lock_release();
 		palloc_free_page (frame);
 		PANIC ("File_read in page fault handler didnt read enough bytes");
 	}
+	syscall_file_lock_release();
   } else if (supplemental_pte->ptype == MMAP_FILE_PAGE){
   	//extra credit?
-  } else if (supplemental_pte->ptype p== ZERO_PAGE){
+  } else if (supplemental_pte->ptype == ZERO_PAGE){
   	memset (frame, 0, PGSIZE);
   	dirty_bit = false;
   } else if (supplemental_pte->ptype == SWAP_PAGE){
