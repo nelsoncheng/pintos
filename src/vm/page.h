@@ -14,6 +14,9 @@ struct pte{
   //tells what kind of page this is 
   page_type ptype;
   
+  //if the page is a swap page, this will store information for when the page is not in swap
+  struct swap_member *member;
+  
   size_t bytes_to_read;
   size_t bytes_to_zero;
   //if this is NULL then the frame isnt in physical memory,
