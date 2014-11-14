@@ -141,7 +141,7 @@ syscall_handler (struct intr_frame *f)
 		if (!is_valid_pointer(ARG1)){
 		syscall_exit(-1);
  		}
- 		status = syscall_mmap((int)* ARG1);
+ 		status = syscall_munmap((int)* ARG1);
  		break;
 	default:
 		status = -1;
