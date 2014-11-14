@@ -5,15 +5,21 @@ void frame_init(){
   lock_init(&frame_lock);
 }
 
+void frame_external_lock_release(){
+  lock_acquire(&frame_lock);
+}
+
+void frame_external_lock_release(){
+  lock_release(&frame_lock);
+}
+
 void * frame_get(void * vpage, bool zero_page, struct pte * sup_pte){
   void * kpage = palloc_get_page ( PAL_USER | (zero_page ? PAL_ZERO : 0) );
   
   if(kpage == NULL) {
-    lock_acquire(&frame_lock);
     frame_evict();
-    lock_release(&frame_lock);
+    kpage = palloc_get_page ( PAL_USER | (zero_page ? PAL_ZERO : 0) );
     //PANIC ("no more frames, need to implement evict");
-    return kpage;
   }
   
   struct frame * new_frame = (struct frame*) malloc (sizeof (struct frame));
@@ -34,6 +40,7 @@ void frame_evict(){//FIFO evict
  struct frame * frame_ptr;
  struct pte * new_page;
  
+ lock_acquire(&frame_lock);
  iterator = list_begin(&frame_list);
  while (iterator != list_end(&frame_list)){
    frame_ptr = list_entry(iterator, struct frame, elem);
@@ -63,4 +70,6 @@ void frame_evict(){//FIFO evict
  list_remove(iterator);
  palloc_free_page(frame_ptr->paddr);
  free(frame_ptr);
+ 
+ lock_release(&frame_lock);
  }  
