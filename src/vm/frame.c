@@ -44,7 +44,6 @@ void frame_evict(){//FIFO evict
  int i;
  
  /* fifo
- lock_acquire(&frame_lock);
  iterator = list_begin(&frame_list);
  while (iterator != list_end(&frame_list)){
    frame_ptr = list_entry(iterator, struct frame, elem);
@@ -52,7 +51,6 @@ void frame_evict(){//FIFO evict
     break;
   iterator = list_next(iterator);
  }
- lock_release(&frame_lock);
  */
  //clock
  iterator = next_elem;
