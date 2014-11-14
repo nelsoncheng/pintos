@@ -29,4 +29,4 @@ struct swap_member{
 void swap_init();
 struct swap_member * swap_insert(struct frame *frame_ptr);
 void swap_retrieve(struct swap_member * member, void * physical_address);
-#endif /* vm/swap.h */
+
