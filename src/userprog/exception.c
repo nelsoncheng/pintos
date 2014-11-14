@@ -226,6 +226,7 @@ page_fault (struct intr_frame *f)
 		PANIC ("File_read in page fault handler didnt read enough bytes");
 	}
 	syscall_file_lock_release();
+	memset(frame + supplemental_pte->bytes_to_read, 0, supplemental_pte->bytes_to_zero);
   } else if (supplemental_pte->ptype == MMAP_FILE_PAGE){
   	//extra credit?
   	printf("how did we even get here (mmap file page)\n");
