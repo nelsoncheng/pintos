@@ -27,7 +27,8 @@ pagedir_create (void)
 void
 pagedir_destroy (uint32_t *pd) 
 {
-  uint32_t *pde;
+  uint32_t *pde, *paddr;
+  struct pte *sup_pte;
 
   if (pd == NULL)
     return;
@@ -40,8 +41,16 @@ pagedir_destroy (uint32_t *pd)
         uint32_t *pte;
         
         for (pte = pt; pte < pt + PGSIZE / sizeof *pte; pte++)
-          if (*pte & PTE_P) 
-            palloc_free_page (pte_get_page (*pte));
+          if (*pte & PTE_P) {
+            paddr = pte_get_page(*pte);
+            frame_free(paddr);
+          } else {
+            sup_pte = (struct pte *) *pte;
+            if (sup_pte->ptype == SWAP_PAGE){
+               swap_free_bitmap(sup_pte->member);
+            free(sup_pte);
+            }
+          }
         palloc_free_page (pt);
       }
   palloc_free_page (pd);
