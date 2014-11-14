@@ -306,9 +306,11 @@ static int syscall_read (int fd, void *buffer, unsigned size){
 	// 3 possible types of fd
 	switch(fd){
 		case STDIN_FILENO:
+			frame_pin (buffer, false, true);
 			for (i = 0; i != size; ++i)
 				*(uint8_t *)(buffer + i) = input_getc ();
 			status = size;
+			frame_pin (buffer, false, false);
 			lock_release (&file_lock);
 			return status;
 		case STDOUT_FILENO:
@@ -320,8 +322,13 @@ static int syscall_read (int fd, void *buffer, unsigned size){
 				lock_release (&file_lock);
 				return status;
 			}
-			status = file_read (process_file, buffer, size);
+			void * temp_buffer = malloc(size);
+			status = file_read (process_file, temp_buffer, size);
 			lock_release (&file_lock);
+			frame_pin (buffer, false, true);
+			memcpy(buffer, temp_buffer, size);
+			frame_pin (buffer, false, false);
+			
 			return status;
 	}
 }
@@ -342,7 +349,6 @@ static int syscall_write (int fd, const void *buffer, unsigned size){
 	}
 
 	
-	lock_acquire (&file_lock);
 	status = -1;
 	//3 possible types of fd
 	switch(fd){
@@ -350,11 +356,13 @@ static int syscall_write (int fd, const void *buffer, unsigned size){
 			syscall_exit(-1);
 			break;
 		case STDIN_FILENO:
-			lock_release (&file_lock);
 			syscall_exit(-1);
 			return status;
 		case STDOUT_FILENO:
+			lock_acquire (&file_lock);
+			frame_pin(temp_buffer, false, true);
 			putbuf (buffer, size);
+			frame_pin(temp_buffer, false, false);
 			status = size;
 			lock_release (&file_lock);
 			return status;
@@ -364,7 +372,13 @@ static int syscall_write (int fd, const void *buffer, unsigned size){
 				lock_release (&file_lock);
 				syscall_exit(-1);
 			}
-			status = file_write (process_file, buffer, size);
+			void * temp_buffer = malloc(size);
+			frame_pin(temp_buffer, false, true);
+			memcpy(temp_buffer, buffer, size);
+			frame_pin(temp_buffer, false, false);
+			
+			lock_acquire (&file_lock);
+			status = file_write (process_file, temp_buffer, size);
 			lock_release (&file_lock);
 			return status;
 	}
