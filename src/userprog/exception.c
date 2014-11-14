@@ -218,7 +218,7 @@ page_fault (struct intr_frame *f)
   	memset (frame, 0, PGSIZE);
   	dirty_bit = false;
   } else if (supplemental_pte->ptype == SWAP_PAGE){
-  	//need to actually make swap first
+  	swap_retrieve(supplemental_pte->member, frame);
   	dirty = true;
   } else {
   	PANIC ("Supplemental page didnt have a type");
