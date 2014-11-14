@@ -9,6 +9,7 @@
 #include "userprog/pagedir.h"
 #include "userprog/syscall.h"
 #include "vm/page.h"
+#include "vm/swap.h"
 #include <stdbool.h>
 #include <stdlib.h>
 
