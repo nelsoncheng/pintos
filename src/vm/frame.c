@@ -72,4 +72,27 @@ void frame_evict(){//FIFO evict
  free(frame_ptr);
  
  lock_release(&frame_lock);
- }  
+  
+}  
+ 
+
+
+bool frame_free (void * paddr){
+  struct list_elem iterator;
+  struct frame * frame_ptr;
+  
+  lock_acquire(&frame_lock);
+  
+  iterator = list_begin(&frame_list);
+  while (iterator != list_end(&frame_list)){
+    frame_ptr = list_entry(iterator, struct frame, elem);
+    if (frame_ptr->paddr == paddr){
+      break;
+   }
+  }
+  palloc_free_page(frame_ptr->paddr);
+  list_remove(iterator);
+  free(frame_ptr);
+  
+  lock_release(&frame_lock);
+ }
