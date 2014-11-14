@@ -3,6 +3,7 @@
 void frame_init(){
   list_init(&frame_list);
   lock_init(&frame_lock);
+  next_elem = list_begin(&frame_list);
 }
 
 void frame_external_lock_acquire(){
@@ -36,18 +37,42 @@ void * frame_get(void * vpage, bool zero_page, struct pte * sup_pte){
 }
 
 void frame_evict(){//FIFO evict
- struct list_elem iterator;
- struct frame * frame_ptr;
+ struct list_elem * iterator;
+ struct frame * frame_ptr, * true_page;
  struct pte * new_page;
+ int i;
  
+ /* fifo
  lock_acquire(&frame_lock);
  iterator = list_begin(&frame_list);
  while (iterator != list_end(&frame_list)){
    frame_ptr = list_entry(iterator, struct frame, elem);
    if (frame_ptr->pinned == false)//need to actually implement pinning
     break;
+  iterator = list_next(iterator);
  }
+ lock_release(&frame_lock);
+ */
+ //clock
+ lock_acquire(&frame_lock);
+ iterator = next_elem;
+ for (i = 0; i < 2 && true_page == NULL; i++){
+   while (iterator != list_end(&frame_list)){
+     frame_ptr = list_entry(iterator, struct frame, elem);
+     bool accessed = pagedir_is_accessed(frame_ptr->owner->pagedir, frame_ptr->upage)
+     if (frame_ptr->pinned == false && !accessed){//need to actually implement pinning
+      true_page = frame_ptr;
+      break;
+     } else if (accessed){
+      pagedir_set_accessed(f->owner->pagedir, f->upage, false);
+     }
+     iterator = list_next(iterator);
+   }
+ }
+ next_elem = list_next(iterator);
+ lock_release(&frame_lock);
  
+ //starting from here comes the actual eviction
  if (pagedir_is_dirty(frame_ptr->owner->pagedir, frame_ptr->upage)){//then the page was a stack or swap page
    //pin the frames here
    frame_pin(frame_ptr->upage, false, true);
@@ -74,7 +99,7 @@ void frame_evict(){//FIFO evict
  palloc_free_page(frame_ptr->paddr);
  free(frame_ptr);
  
- lock_release(&frame_lock);
+ 
   
 }  
  
@@ -92,6 +117,7 @@ bool frame_free (void * paddr){
     if (frame_ptr->paddr == paddr){
       break;
    }
+   iterator = list_next(iterator);
   }
   palloc_free_page(frame_ptr->paddr);
   list_remove(iterator);
@@ -118,7 +144,8 @@ bool frame_pin (void * address, bool user_or_kernal, bool pinval){
     frame_ptr = list_entry(iterator, struct frame, elem);
     if (frame_ptr->paddr == paddr){
       break;
-   }
+    }
+   iterator = list_next(iterator);
   }
   lock_release(&frame_lock);
   if (frame_ptr == NULL){
