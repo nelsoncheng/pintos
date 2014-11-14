@@ -97,3 +97,31 @@ bool frame_free (void * paddr){
   
   lock_release(&frame_lock);
  }
+ 
+bool frame_pin (void * address, bool user_or_kernal, bool pinval){
+  void * paddr;
+  struct list_elem iterator;
+  struct frame * frame_ptr;
+  
+  if (!user_or_kernal){//user_or_kernal being false means a virtual address was passed, physical address otherwise
+    paddr = pagedir_get_page(thread_current()->pagedir, pg_round_down(vaddr));
+  } else {
+    paddr = address;
+  }
+  
+  lock_acquire(&frame_lock);
+  
+  iterator = list_begin(&frame_list);
+  while (iterator != list_end(&frame_list)){
+    frame_ptr = list_entry(iterator, struct frame, elem);
+    if (frame_ptr->paddr == paddr){
+      break;
+   }
+  }
+  lock_release(&frame_lock);
+  if (frame_ptr == NULL){
+    return false;
+  } 
+  frame_ptr->pin = pinval;
+  return true;
+ }
