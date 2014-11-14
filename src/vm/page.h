@@ -5,6 +5,8 @@ typedef enum {MMAP_FILE_PAGE, EXECUTABLE_PAGE, SWAP_PAGE, ZERO_PAGE} page_type;
 
 struct pte * page_new(page_type type, int offset, bool read_or_write, struct file * source_file, bool zero);
 
+struct pte* page_swap_pte(struct swap_member * swap);
+
 struct pte{
   struct file *fileptr;
   // the byte we're at in the current file
