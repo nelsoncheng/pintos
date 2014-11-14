@@ -14,6 +14,8 @@ struct pte{
   //tells what kind of page this is 
   page_type ptype;
   
+  size_t bytes_to_read;
+  size_t bytes_to_zero;
   //if this is NULL then the frame isnt in physical memory,
   //otherwise tells which kernal address points to this page
   void * frame_address;
