@@ -60,23 +60,3 @@ void frame_evict(){//FIFO evict
  pagedir_clear_page (frame_ptr->owner->pagedir, frame_ptr->upage);
  pagedir_set_pte (frame_ptr->owner->pagedir, frame_ptr->upage, new_page);
  }  
- 
- 
- 
- child_list_elem = list_begin(&curr_thread->children);
-while (child_list_elem != list_end(&curr_thread->children)){
-child_e = list_entry(child_list_elem, struct child_elem, elem);
-child_pid = child_e->pid;
-status_list_elem = list_begin(&curr_thread->exit_status_list);
-// look through list of exited threads to see if child is already dead, remove its exit status if so
-while (status_list_elem != list_end (&curr_thread->exit_status_list)){
-status_e = list_entry(status_list_elem, struct status_elem, elem);
-if (status_e->pid == child_pid){
-list_remove(status_list_elem);
-//free(status_e);
-}
-status_list_elem = list_next(status_list_elem);
-}
-child_list_elem = list_next(child_list_elem);
-}
-}
