@@ -5,7 +5,7 @@ void frame_init(){
   lock_init(&frame_lock);
 }
 
-void frame_external_lock_release(){
+void frame_external_lock_acquire(){
   lock_acquire(&frame_lock);
 }
 
