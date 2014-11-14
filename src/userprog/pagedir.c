@@ -6,6 +6,7 @@
 #include "threads/pte.h"
 #include "threads/palloc.h"
 #include "vm/frame.c"
+#include "vm/swap.c"
 
 static uint32_t *active_pd (void);
 static void invalidate_pagedir (uint32_t *);
