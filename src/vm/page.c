@@ -17,7 +17,7 @@ struct pte * page_new(page_type type, int offset, bool read_or_write, struct fil
     new_pte->bytes_to_zero = 0;
   } else {
     new_pte->file_ptr = source_file
-    new_pte->file_offset = offset
+    new_pte->file_offset = offset;
     new_pte->read_only = read_or_write;
     new_pte->page_type = type;
     new_pte->bytes_to_read = read_bytes;
@@ -28,6 +28,18 @@ struct pte * page_new(page_type type, int offset, bool read_or_write, struct fil
   return new_pte;
 }
 
-//bool page_is_stack_fault(void * stack_ptr, void * fault_address){
-  //TODO: devise a way to determine if a page fault's faulting address was meang to be a stack access
-//}
+struct pte* page_swap_pte(struct swap_member * swap){
+  struct pte new_pte* = (struct pte *) malloc(sizeof(struct pte));
+  if (new_pte == NULL){
+    PANIC("Not enough memory to make a page table entry");
+  }
+  new_pte->page_type = SWAP_PAGE;
+  new_pte->swap_member = swap;
+  new_pte->file_ptr = NULL;
+  new_pte->file_offset = NULL;
+  new_pte->read_only = NULL;
+  new_pte->bytes_to_read = 0;
+  new_pte->bytes_to_zero = 0;
+  return new_pte;
+}
+
