@@ -16,6 +16,9 @@
 static struct list frame_list;
 static struct lock frame_lock;
 
+void frame_evict();
+void frame_external_lock_acquire();
+void frame_external_lock_release();
 void * frame_get(void * vpage, bool zero_page);
 void frame_init();
 
