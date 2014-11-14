@@ -10,9 +10,9 @@ void * frame_get(void * vpage, bool zero_page, struct pte * sup_pte){
   
   if(kpage == NULL) {
     lock_acquire(&frame_lock);
+    frame_evict();
     lock_release(&frame_lock);
-    //TODO: evict a page
-    PANIC ("no more frames, need to implement evict");
+    //PANIC ("no more frames, need to implement evict");
     return kpage;
   }
   
@@ -27,4 +27,56 @@ void * frame_get(void * vpage, bool zero_page, struct pte * sup_pte){
   lock_release(&frame_lock);
   
   return kpage;
+}
+
+void frame_evict(){//FIFO evict
+ struct list_elem iterator;
+ struct frame * frame_ptr;
+ struct pte * new_page;
+ 
+ iterator = list_begin(&frame_list);
+ while (iterator != list_end(&frame_list)){
+   frame_ptr = list_entry(iterator, struct frame, elem);
+   if (frame_ptr->pinned == false)
+    break;
+ }
+ 
+ if (pagedir_is_dirty(frame_ptr->owner->pagedir, frame_ptr->upage)){//then the page was a stack or swap page
+   //pin the frames here
+   struct swap_member * swap = swap_insert(frame_ptr);
+   //unpin the frames
+   if (frame_ptr->saved_page == NULL){
+     new_page = page_new(ZERO_PAGE, 0, 0, NULL, true, 0, 0);
+   } else {
+     new_page = page_swap_pte(swap);
+   }
+ } else {
+   bool zero = frame_ptr->saved_page->ptype == ZERO_PAGE ? true : false;
+   new_page = page_new(frame_ptr->saved_page->ptype, frame_ptr->saved_page->file_offset,
+   frame_ptr->saved_page->read_only, frame_ptr->saved_page->file_ptr, zero,
+   frame_ptr->saved_page->bytes_to_read, frame_ptr->saved_page->bytes_to_zero );
+ }
+ //possible need to use a semaphore for a thread's page directory here
+ pagedir_clear_page (frame_ptr->owner->pagedir, frame_ptr->upage);
+ pagedir_set_pte (frame_ptr->owner->pagedir, frame_ptr->upage, new_page);
+ }  
+ 
+ 
+ 
+ child_list_elem = list_begin(&curr_thread->children);
+while (child_list_elem != list_end(&curr_thread->children)){
+child_e = list_entry(child_list_elem, struct child_elem, elem);
+child_pid = child_e->pid;
+status_list_elem = list_begin(&curr_thread->exit_status_list);
+// look through list of exited threads to see if child is already dead, remove its exit status if so
+while (status_list_elem != list_end (&curr_thread->exit_status_list)){
+status_e = list_entry(status_list_elem, struct status_elem, elem);
+if (status_e->pid == child_pid){
+list_remove(status_list_elem);
+//free(status_e);
+}
+status_list_elem = list_next(status_list_elem);
+}
+child_list_elem = list_next(child_list_elem);
+}
 }
