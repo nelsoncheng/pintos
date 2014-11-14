@@ -242,7 +242,7 @@ page_fault (struct intr_frame *f)
   	PANIC ("Supplemental page didnt have a type");
   }
   pagedir_clear_page(thread_current()->pagedir, page);
-  success = pagedir_set_page(thread_current()->pagedir, page, frame, true);
+  success = pagedir_set_page(thread_current()->pagedir, page, frame, supplemental_pte->read_only);
   if (!success){
   	frame_free(frame);
   }
