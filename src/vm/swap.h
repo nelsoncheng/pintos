@@ -21,30 +21,10 @@ int page_to_sector_ratio;
 struct bitmap *free_list;
 
 struct swap_member{
-  
+  struct frame * frame_ptr;
+  block_sector_t start_address;
 }
 
 // initializing our lists locks, and anything else
-void swap_init(void);
-// finds the page in the frames with the specified upage 
-struct page *swap_find (void *upage);
-// replaces the page with new page
-void* swap_evict(void *upage, page* npage)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+void swap_init();
 #endif /* vm/swap.h */
