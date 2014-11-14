@@ -153,14 +153,28 @@ page_fault (struct intr_frame *f)
   /* Turn interrupts back on (they were only off so that we could
      be assured of reading CR2 before it changed). */
   intr_enable ();
-
+  
   /* Count page faults. */
   page_fault_cnt++;
 
   /* Determine cause. */
   not_present = (f->error_code & PF_P) == 0;
   write = (f->error_code & PF_W) != 0;
-  user = (f->error_code & PF_U) != 0;
+  user = (f->error_code & PF_U) !=  
+  if (!is_user_vaddr(fault_addr)){
+  	f->eip = (void (*) (void)) f->eax;
+	f->eax = 0xffffffff;
+  	//do the magical syscall_exiting if the fault address is unmapped and not a stack access, hope this works
+  	 int retval;                                                    
+          asm volatile                                                   
+            ("pushl %[arg0]; pushl %[number]; int $0x30; addl $8, %%esp" 
+               : "=a" (retval)                                           
+               : [number] "i" (1),                                  
+                 [arg0] "g" (-1)                                       
+               : "memory");                                              
+          retval;
+  }
+  
   
   //get the page that contains the faulting virtual address
   uint32_t faulting_address = (uint32_t) fault_addr;
