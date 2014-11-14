@@ -18,9 +18,10 @@ void * frame_get(void * vpage, bool zero_page, struct pte * sup_pte){
   void * kpage = palloc_get_page ( PAL_USER | (zero_page ? PAL_ZERO : 0) );
   
   if(kpage == NULL) {
+    lock_acquire(&frame_lock);
     frame_evict();
     kpage = palloc_get_page ( PAL_USER | (zero_page ? PAL_ZERO : 0) );
-    //PANIC ("no more frames, need to implement evict");
+    lock_release(&frame_lock);
   }
   
   struct frame * new_frame = (struct frame*) malloc (sizeof (struct frame));
@@ -54,7 +55,6 @@ void frame_evict(){//FIFO evict
  lock_release(&frame_lock);
  */
  //clock
- lock_acquire(&frame_lock);
  iterator = next_elem;
  for (i = 0; i < 2 && true_page == NULL; i++){
    while (iterator != list_end(&frame_list)){
@@ -70,7 +70,6 @@ void frame_evict(){//FIFO evict
    }
  }
  next_elem = list_next(iterator);
- lock_release(&frame_lock);
  if (true_page == NULL){
    printf("all pages were pinned??\n");
  }
