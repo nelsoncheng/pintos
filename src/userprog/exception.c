@@ -162,8 +162,6 @@ page_fault (struct intr_frame *f)
   write = (f->error_code & PF_W) != 0;
   user = (f->error_code & PF_U) !=  
   if (!is_user_vaddr(fault_addr)){
-  	f->eip = (void (*) (void)) f->eax;
-	f->eax = 0xffffffff;
   	//do the magical syscall_exiting if the fault address is unmapped and not a stack access, hope this works
   	 int retval;                                                    
           asm volatile                                                   
@@ -188,6 +186,8 @@ page_fault (struct intr_frame *f)
   	stack_ptr = thread_current()->kernel_stack_pointer;
   }
   if (sup_pte == NULL || !stack_page_fault(stack_ptr, fault_addr)){
+  	f->eip = (void (*) (void)) f->eax;
+	f->eax = 0xffffffff;
   	//do the magical syscall_exiting if the fault address is unmapped and not a stack access, hope this works
   	 int retval;                                                    
           asm volatile                                                   
