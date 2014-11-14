@@ -33,6 +33,12 @@ void swap_retrieve(struct swap_member * member, void * physical_address){
   lock_release(&block_lock);
 }
 
+void swap_free_bitmap(struct swap_member *member){
+  lock_acquire(&block_lock);
+  bitmap_set_multiple(free_list, member->start_address, page_to_sector_ratio, true);
+  lock_release(&block_lock);
+}
+
 void swap_init(){
     swap_block = block_get_role(BLOCK_SWAP);
     size = block_size(swap_block);
