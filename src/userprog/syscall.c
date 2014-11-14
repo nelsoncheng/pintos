@@ -66,7 +66,7 @@ syscall_handler (struct intr_frame *f)
  		}
 		syscall_exit((int)* ARG1);
 		break;
-    case SYS_HALT:
+    	case SYS_HALT:
         syscall_halt();
 		break;
 	case SYS_EXEC:
@@ -130,6 +130,19 @@ syscall_handler (struct intr_frame *f)
  		}
         syscall_close((int)* ARG1);
 		break;
+	
+	case SYS_MMAP:
+		if (!is_valid_pointer(ARG1) || !is_valid_pointer(ARG2)){
+		syscall_exit(-1);
+ 		}
+ 		status = syscall_mmap((int)* ARG1, (void *)* ARG2);
+ 		break;
+ 	case SYS_MUNMAP:
+		if (!is_valid_pointer(ARG1)){
+		syscall_exit(-1);
+ 		}
+ 		status = syscall_mmap((int)* ARG1);
+ 		break;
 	default:
 		status = -1;
   }
@@ -427,7 +440,21 @@ static void syscall_close (int fd){
 	list_remove (&fde->elem);
 	free (fde);
 }
-
+/*
+static int syscall_mmap(int fd, void * addr){
+	size_t file_size;
+	struct fd_elem *fde;
+	if (fd == 0 || fd == 1){
+		syscall_exit(-1);
+	}
+	fde = find_fd_elem(fd);
+	file_size = file_length(fde->file);
+	if (fde == NULL || file_size == 0 || addr == 0 || addr % PGSIZE != 0){
+		syscall_exit(-1);
+	}
+	
+}
+*/
 ////////////////////////////////////////////////////////////////////////////////////////
 //Support methods
 ////////////////////////////////////////////////////////////////////////////////////////
