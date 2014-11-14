@@ -50,7 +50,9 @@ void frame_evict(){//FIFO evict
  
  if (pagedir_is_dirty(frame_ptr->owner->pagedir, frame_ptr->upage)){//then the page was a stack or swap page
    //pin the frames here
+   frame_pin(frame_ptr->upage, false, true);
    struct swap_member * swap = swap_insert(frame_ptr);
+   frame_pin(frame_ptr->upage, false, false);
    //unpin the frames
    if (frame_ptr->saved_page == NULL){
      new_page = page_new(ZERO_PAGE, 0, 0, NULL, true, 0, 0);
