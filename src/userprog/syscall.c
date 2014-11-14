@@ -24,6 +24,14 @@ static void syscall_close (int fd);
 
 struct lock file_lock;
 
+void syscall_file_lock_acquire(){
+	lock_acquire(&file_lock);
+}
+
+void syscall_file_lock_release(){
+	lock_release(&file_lock);
+}
+
 void
 syscall_init (void) 
 {
