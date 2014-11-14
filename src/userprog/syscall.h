@@ -22,4 +22,6 @@
 void syscall_init (void);
 static void syscall_handler (struct intr_frame *);
 
+void syscall_file_lock_acquire();
+void syscall_file_lock_release();
 #endif /* userprog/syscall.h */
