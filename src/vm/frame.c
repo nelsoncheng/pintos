@@ -37,7 +37,7 @@ void frame_evict(){//FIFO evict
  iterator = list_begin(&frame_list);
  while (iterator != list_end(&frame_list)){
    frame_ptr = list_entry(iterator, struct frame, elem);
-   if (frame_ptr->pinned == false)
+   if (frame_ptr->pinned == false)//need to actually implement pinning
     break;
  }
  
@@ -59,4 +59,8 @@ void frame_evict(){//FIFO evict
  //possible need to use a semaphore for a thread's page directory here
  pagedir_clear_page (frame_ptr->owner->pagedir, frame_ptr->upage);
  pagedir_set_pte (frame_ptr->owner->pagedir, frame_ptr->upage, new_page);
+ 
+ list_remove(iterator);
+ palloc_free_page(frame_ptr->paddr);
+ free(frame_ptr);
  }  
