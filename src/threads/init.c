@@ -132,6 +132,7 @@ main (void)
 
 //new inits
    frame_init();
+   swap_init();
 
   printf ("Boot complete.\n");
   
