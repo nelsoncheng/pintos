@@ -10,8 +10,8 @@ struct pte * page_new(page_type type, int offset, bool read_or_write, struct fil
   
   if (zero){
     new_pte->file_ptr = NULL;
-    new_pte->file_offset = NULL;
-    new_pte->read_only = NULL;
+    new_pte->file_offset = 0;
+    new_pte->read_only = 0;
     new_pte->page_type = ZERO_PAGE;
     new_pte->bytes_to_read = 0;
     new_pte->bytes_to_zero = 0;
