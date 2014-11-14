@@ -243,8 +243,7 @@ page_fault (struct intr_frame *f)
   pagedir_clear_page(thread_current()->pagedir, page);
   success = pagedir_set_page(thread_current()->pagedir, page, frame, true);
   if (!success){
-  	//change later
-  	PANIC("For some reason pagedir_set_page didnt work");
+  	frame_free(frame);
   }
   pagedir_set_accessed(thread_current()->pagedir, page, true);
   pagedir_set_dirty(thread_current()->pagedir, page, dirty_bit);
