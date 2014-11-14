@@ -54,6 +54,7 @@ void frame_evict(){//FIFO evict
    //unpin the frames
    if (frame_ptr->saved_page == NULL){
      new_page = page_new(ZERO_PAGE, 0, 0, NULL, true, 0, 0);
+     free(swap);
    } else {
      new_page = page_swap_pte(swap);
    }
