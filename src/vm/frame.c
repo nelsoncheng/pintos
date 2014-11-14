@@ -58,7 +58,7 @@ void frame_evict(){//FIFO evict
    while (iterator != list_end(&frame_list)){
      frame_ptr = list_entry(iterator, struct frame, elem);
      bool accessed = pagedir_is_accessed(frame_ptr->owner->pagedir, frame_ptr->upage)
-     if (frame_ptr->pinned == false && !accessed){//need to actually implement pinning
+     if ((frame_ptr->pinned == false) && (!accessed)){//need to actually implement pinning
       true_page = frame_ptr;
       break;
      } else if (accessed){
@@ -69,7 +69,7 @@ void frame_evict(){//FIFO evict
  }
  next_elem = list_next(iterator);
  if (true_page == NULL){
-   printf("all pages were pinned??\n");
+   printf("all pages were pinned??clock algorithm problem...\n");
  }
  //starting from here comes the actual eviction
  if (pagedir_is_dirty(frame_ptr->owner->pagedir, frame_ptr->upage)){//then the page was a stack or swap page
