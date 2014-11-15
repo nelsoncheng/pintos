@@ -5,8 +5,8 @@
 #include "threads/init.h"
 #include "threads/pte.h"
 #include "threads/palloc.h"
-#include "vm/frame.c"
-#include "vm/swap.c"
+#include "vm/frame.h"
+#include "vm/swap.h"
 
 static uint32_t *active_pd (void);
 static void invalidate_pagedir (uint32_t *);
@@ -36,25 +36,28 @@ pagedir_destroy (uint32_t *pd)
     return;
 
   ASSERT (pd != init_page_dir);
-  for (pde = pd; pde < pd + pd_no (PHYS_BASE); pde++)
+  for (pde = pd; pde < pd + pd_no (PHYS_BASE); pde++){
     if (*pde & PTE_P) 
       {
         uint32_t *pt = pde_get_pt (*pde);
         uint32_t *pte;
         
-        for (pte = pt; pte < pt + PGSIZE / sizeof *pte; pte++)
+        for (pte = pt; pte < pt + PGSIZE / sizeof *pte; pte++) {
           if (*pte & PTE_P) {
             paddr = pte_get_page(*pte);
             frame_free(paddr);
-          } else {
-            sup_pte = (struct pte *) *pte;
-            if (sup_pte->ptype == SWAP_PAGE){
-               swap_free_bitmap(sup_pte->member);
-            free(sup_pte);
+           } else if (*pte != 0){
+            	sup_pte = (struct pte *) *pte;
+            	if (sup_pte->ptype == SWAP_PAGE){
+               		swap_free_bitmap(sup_pte->member);           		 	
+           		 }
+				free(sup_pte);
             }
-          }
+		  }
         palloc_free_page (pt);
       }
+	}
+	
   palloc_free_page (pd);
 }
 
@@ -101,11 +104,11 @@ pagedir_set_pte (uint32_t *pd, void *upage, struct pte *page_table_entry)
 {
   uint32_t *pte;
 
-  ASSERT (pg_ofs (upage) == 0);
-  ASSERT (pg_ofs (kpage) == 0);
-  ASSERT (is_user_vaddr (upage));
-  ASSERT (vtop (kpage) >> PTSHIFT < init_ram_pages);
-  ASSERT (pd != init_page_dir);
+ 	ASSERT (pg_ofs (upage) == 0);
+ 	ASSERT (((uint32_t) page_table_entry & PTE_P) == 0);
+	ASSERT (is_user_vaddr (upage));
+	ASSERT (vtop (page_table_entry) >> PTSHIFT < init_ram_pages);
+	ASSERT (pd != init_page_dir);
 
   pte = lookup_page (pd, upage, true);
 
@@ -170,12 +173,13 @@ pagedir_get_page (uint32_t *pd, const void *uaddr)
   }
   
   // The following code deals with the situation where the pd contains a pointer to a not yet mapped struct pte *
-  if (pte == NULL || *pte == NULL)
+  if (pte == NULL || *pte == NULL){
       return NULL;
   } else if (*pte != NULL){
       return (void *) *pte;//in this case, there is a pte but its unmapped to physical memory.
       //this means the pte is a pointer to a supplemental pte
   }
+}
 
 /* Marks user virtual page UPAGE "not present" in page
    directory PD.  Later accesses to the page will fault.  Other

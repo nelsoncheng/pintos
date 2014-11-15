@@ -130,7 +130,7 @@ syscall_handler (struct intr_frame *f)
  		}
         syscall_close((int)* ARG1);
 		break;
-	
+	/*
 	case SYS_MMAP:
 		if (!is_valid_pointer(ARG1) || !is_valid_pointer(ARG2)){
 		syscall_exit(-1);
@@ -143,6 +143,7 @@ syscall_handler (struct intr_frame *f)
  		}
  		status = syscall_munmap((int)* ARG1);
  		break;
+	*/
 	default:
 		status = -1;
   }
@@ -349,6 +350,7 @@ static int syscall_read (int fd, void *buffer, unsigned size){
 //Jonathan driving
 static int syscall_write (int fd, const void *buffer, unsigned size){
 
+	void * temp_buffer;
 	struct file * process_file;
 	unsigned i;
 	int status;
@@ -373,9 +375,9 @@ static int syscall_write (int fd, const void *buffer, unsigned size){
 			return status;
 		case STDOUT_FILENO:
 			lock_acquire (&file_lock);
-			frame_pin(temp_buffer, false, true);
+			frame_pin(buffer, false, true);
 			putbuf (buffer, size);
-			frame_pin(temp_buffer, false, false);
+			frame_pin(buffer, false, false);
 			status = size;
 			lock_release (&file_lock);
 			return status;
@@ -385,7 +387,7 @@ static int syscall_write (int fd, const void *buffer, unsigned size){
 				lock_release (&file_lock);
 				syscall_exit(-1);
 			}
-			void * temp_buffer = malloc(size);
+			temp_buffer = malloc(size);
 			frame_pin(temp_buffer, false, true);
 			memcpy(temp_buffer, buffer, size);
 			frame_pin(temp_buffer, false, false);
@@ -432,9 +434,9 @@ static void syscall_close (int fd){
 	if (!fde || (fd == 0) || (fd == 1)) 
 		syscall_exit (-1);
 
-	lock_acquire (&file_lock);
+	//lock_acquire (&file_lock);
 	file_close (fde->file);
-	lock_release (&file_lock);
+	//lock_release (&file_lock);
 	
 	thread_current()->fd_counter--;
 	list_remove (&fde->elem);

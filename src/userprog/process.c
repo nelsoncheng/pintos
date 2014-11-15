@@ -203,7 +203,7 @@ process_exit (void)
       cur->pagedir = NULL;
       pagedir_activate (NULL);
       pagedir_destroy (pd);
-      frame_external_lock_acquire();
+      frame_external_lock_release();
     }
 }
 
@@ -507,7 +507,7 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
       page_table_entry = page_new(EXECUTABLE_PAGE, offset, writable, file, zero, page_read_bytes, page_zero_bytes);
 
       /* Put the page's information in the page directory for future loading */
-      if (!((pagedir_get_page(thread_current()->pagedir, upage) == 0) && (pagedir_set_pte(t->pagedir, upage, page_table_entry))){
+      if (!((pagedir_get_page(thread_current()->pagedir, upage) == 0) && (pagedir_set_pte(thread_current()->pagedir, upage, page_table_entry)))){
       	free(page_table_entry);
       	return false;
       }
@@ -516,6 +516,7 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
       upage += PGSIZE;
       read_bytes -= page_read_bytes;
       zero_bytes -= page_zero_bytes;
+	  printf("just added a supplemental page to virtual memory\n");
     }
   file_seek (file, ofs);
   return true;
@@ -532,7 +533,8 @@ setup_stack (void **esp, char *file_name)
   /* Length of arguments with sentinel value */
   int arguments_length = strlen (file_name) + 1;
   //get a frame starting one page under PHYS_BASE because stack grows upwards, since its a stack page zero_page == true
-  kpage = frame_get(((uint8_t *) PHYS_BASE) - PGSIZE, true);
+  kpage = frame_get(((uint8_t *) PHYS_BASE) - PGSIZE, true, NULL);
+  printf("got a frame for stack\n");
   if (kpage != NULL) 
     {
       success = (uint8_t *) install_page (((uint8_t *) PHYS_BASE) - PGSIZE, kpage, true);
@@ -545,7 +547,7 @@ setup_stack (void **esp, char *file_name)
       }
         
     }
-  //hex_dump((int)*esp, *esp, PHYS_BASE - *esp, 1);
+  hex_dump((int)*esp, *esp, PHYS_BASE - *esp, 1);
   return success;
 }
 

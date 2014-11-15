@@ -7,6 +7,7 @@
 #include "vm/page.h"
 #include "vm/frame.h"
 #include "vm/swap.h"
+#include "threads/pte.h"
 
 /* Number of page faults processed. */
 static long long page_fault_cnt;
@@ -141,13 +142,6 @@ page_fault (struct intr_frame *f)
   bool user;         /* True: access by user, false: access by kernel. */
   void *fault_addr, *page, *sup_pte, *stack_ptr;  /* Fault address. */
 
-  /* Obtain faulting address, the virtual address that was
-     accessed to cause the fault.  It may point to code or to
-     data.  It is not necessarily the address of the instruction
-     that caused the fault (that's f->eip).
-     See [IA32-v2a] "MOV--Move to/from Control Registers" and
-     [IA32-v3a] 5.15 "Interrupt 14--Page Fault Exception
-     (#PF)". */
   asm ("movl %%cr2, %0" : "=r" (fault_addr));
 
   /* Turn interrupts back on (they were only off so that we could
@@ -160,8 +154,10 @@ page_fault (struct intr_frame *f)
   /* Determine cause. */
   not_present = (f->error_code & PF_P) == 0;
   write = (f->error_code & PF_W) != 0;
-  user = (f->error_code & PF_U) !=  
+  user = (f->error_code & PF_U) != 0;
+
   if (!is_user_vaddr(fault_addr)){
+	printf("not valid user virtual address, exiting.\n");
   	//do the magical syscall_exiting if the fault address is unmapped and not a stack access, hope this works
   	 int retval;                                                    
           asm volatile                                                   
@@ -175,58 +171,84 @@ page_fault (struct intr_frame *f)
   
   
   //get the page that contains the faulting virtual address
-  uint32_t faulting_address = (uint32_t) fault_addr;
-  page = (void*) (faulting_address & PTE_ADDR);
-  //get the supplemental page
+  page = (void*) pg_round_down(fault_addr);
+  printf("faulting page: %u\n", page);
+  sema_down(&thread_current()->pagedir_sema);
   sup_pte = pagedir_get_page(thread_current()->pagedir, page);
+  sema_up(&thread_current()->pagedir_sema);
+  printf("sup_pte : %u\n", sup_pte); 
+
   //get the appropriate stack pointer (kernel or user)
   if (f->cs == SEL_UCSEG){
   	stack_ptr = f->esp;
   } else {
   	stack_ptr = thread_current()->kernel_stack_pointer;
   }
-  if (sup_pte == NULL || !stack_page_fault(stack_ptr, fault_addr)){
-  	f->eip = (void (*) (void)) f->eax;
-	f->eax = 0xffffffff;
-  	//do the magical syscall_exiting if the fault address is unmapped and not a stack access, hope this works
-  	 int retval;                                                    
-          asm volatile                                                   
-            ("pushl %[arg0]; pushl %[number]; int $0x30; addl $8, %%esp" 
-               : "=a" (retval)                                           
-               : [number] "i" (1),                                  
-                 [arg0] "g" (-1)                                       
-               : "memory");                                              
-          retval;
+ 	printf("stack pointer: %u\n", stack_ptr);
+	printf("stack pointer user: %u\n", f->esp);
+	printf("stack pointer kernel: %u\n", thread_current()->kernel_stack_pointer);
+  	bool success = false;
+	
+	if ((fault_addr < PHYS_BASE) && (fault_addr > STACK_BOTTOM) && (fault_addr + 32 >= stack_ptr))
+		success = true;
+	
+	if (!(fault_addr < PHYS_BASE)){
+		printf("1, %u, %u\n", fault_addr, PHYS_BASE);
+	}
+	if (!(fault_addr > STACK_BOTTOM)){
+		printf("2, %u, %u\n", fault_addr, STACK_BOTTOM);
+	}
+	if (!((fault_addr + 32) >= stack_ptr)){
+		printf("3, %u, %u\n", fault_addr +32, stack_ptr);
+	}
+	
+    if (sup_pte == NULL && !success){
+		printf("not stack address, exiting.\n");
+	  	//do the magical syscall_exiting if the fault address is unmapped and not a 		stack access, hope this works
+	  	 int retval;                                                    
+		      asm volatile                                                   
+		        ("pushl %[arg0]; pushl %[number]; int $0x30; addl $8, %%esp" 
+		           : "=a" (retval)                                           
+		           : [number] "i" (1),                                  
+		             [arg0] "g" (-1)                                       
+		           : "memory");                                              
+		      retval;
   } 
   if (sup_pte == NULL){
   	//if we get in here then we need a new stack page
+	printf("allocating new stack page...\n");
   	frame = frame_get(page, true, NULL);
+	sema_down(&thread_current()->pagedir_sema);
   	pagedir_clear_page(thread_current()->pagedir, page);
-  	bool success = pagedir_set_page(thread_current()->pagedir, page, frame, true);
+  	success = pagedir_set_page(thread_current()->pagedir, page, frame, true);
   	if (!success){
   		//change later
   		PANIC("For some reason pagedir_set_page didnt work");
   	}
   	pagedir_set_accessed(thread_current()->pagedir, page, true);
   	pagedir_set_dirty(thread_current()->pagedir, page, true);
+	sema_up(&thread_current()->pagedir_sema);
   	return;
   }
   //if the fault wasnt a stack access, then the supplemental page becomes relevant
   struct pte * supplemental_pte = (struct pte *) sup_pte;
   frame = frame_get(page, true, supplemental_pte);
-  bool dirty_bit, success;
+  printf("got past stack\n");
+  bool dirty_bit;
   
   if (supplemental_pte->ptype == EXECUTABLE_PAGE){
-  	dirty = false;
-  	syscall_file_lock_acquire();
-  	if (file_read (supplemental_pte->file_ptr, frame, supplemental_pte->bytes_to_read) != (int) supplemental_pte->bytes_to_read)
+  	dirty_bit = false;
+  	//syscall_file_lock_acquire();
+	printf("just installed a real page\n");
+  	if (file_read (supplemental_pte->fileptr, frame, supplemental_pte->bytes_to_read) != (int) supplemental_pte->bytes_to_read)
 	{
 		syscall_file_lock_release();
 		palloc_free_page (frame);
 		PANIC ("File_read in page fault handler didnt read enough bytes");
 	}
-	syscall_file_lock_release();
+	//syscall_file_lock_release();
 	memset(frame + supplemental_pte->bytes_to_read, 0, supplemental_pte->bytes_to_zero);
+	printf("just installed a real page\n");
   } else if (supplemental_pte->ptype == MMAP_FILE_PAGE){
   	//extra credit?
   	printf("how did we even get here (mmap file page)\n");
@@ -237,10 +259,11 @@ page_fault (struct intr_frame *f)
   	frame_pin(frame, true, true);
   	swap_retrieve(supplemental_pte->member, frame);
   	frame_pin(frame, true, false);
-  	dirty = true;
+  	dirty_bit = true;
   } else {
   	PANIC ("Supplemental page didnt have a type");
   }
+  sema_down(&thread_current()->pagedir_sema);
   pagedir_clear_page(thread_current()->pagedir, page);
   success = pagedir_set_page(thread_current()->pagedir, page, frame, supplemental_pte->read_only);
   if (!success){
@@ -248,20 +271,22 @@ page_fault (struct intr_frame *f)
   }
   pagedir_set_accessed(thread_current()->pagedir, page, true);
   pagedir_set_dirty(thread_current()->pagedir, page, dirty_bit);
+  sema_up(&thread_current()->pagedir_sema);
 }
 
 
 //Page fault helper methods:
-
+/*
+static
 bool stack_page_fault(void * stack_ptr, void * fault_address){
 	bool success = true;
-	if (fault_address > PHYS_BASE)
+	if (fault_addr > PHYS_BASE)
 		success = false;
-	if (address < STACK_BOTTOM)
+	if (fault_addr < STACK_BOTTOM)
 		success = false;
-	if ((stack_ptr - 32) > fault_address)
+	if ((stack_ptr - 32) > fault_addr)
 		success = false;
 	return success;
 }
-
+*/
 

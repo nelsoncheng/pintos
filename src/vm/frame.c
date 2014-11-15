@@ -25,13 +25,13 @@ void * frame_get(void * vpage, bool zero_page, struct pte * sup_pte){
   }
   
   struct frame * new_frame = (struct frame*) malloc (sizeof (struct frame));
-  new_frame->paddr = kpage
-  new_frame->upage = vpage
+  new_frame->paddr = kpage;
+  new_frame->upage = vpage;
   new_frame->owner = thread_current();
   new_frame->pin = false;
   new_frame->saved_page = sup_pte;
   lock_acquire(&frame_lock);
-  list_push_back(&frame_list, new_frame->elem);
+  list_push_back(&frame_list, &new_frame->elem);
   lock_release(&frame_lock);
   
   return kpage;
@@ -57,16 +57,17 @@ void frame_evict(){//FIFO evict
  for (i = 0; i < 2 && true_page == NULL; i++){
    while (iterator != list_end(&frame_list)){
      frame_ptr = list_entry(iterator, struct frame, elem);
-     bool accessed = pagedir_is_accessed(frame_ptr->owner->pagedir, frame_ptr->upage)
-     if ((frame_ptr->pinned == false) && (!accessed)){//need to actually implement pinning
+     bool accessed = pagedir_is_accessed(frame_ptr->owner->pagedir, frame_ptr->upage);
+     if ((frame_ptr->pin == false) && (!accessed)){//need to actually implement pinning
       true_page = frame_ptr;
       break;
      } else if (accessed){
-      pagedir_set_accessed(f->owner->pagedir, f->upage, false);
-     }
+      pagedir_set_accessed(frame_ptr->owner->pagedir, frame_ptr->upage, false);
+   	 }
      iterator = list_next(iterator);
-   }
+	}
  }
+ 
  next_elem = list_next(iterator);
  if (true_page == NULL){
    printf("all pages were pinned??clock algorithm problem...\n");
@@ -87,28 +88,25 @@ void frame_evict(){//FIFO evict
  } else {
    bool zero = frame_ptr->saved_page->ptype == ZERO_PAGE ? true : false;
    new_page = page_new(frame_ptr->saved_page->ptype, frame_ptr->saved_page->file_offset,
-   frame_ptr->saved_page->read_only, frame_ptr->saved_page->file_ptr, zero,
+   frame_ptr->saved_page->read_only, frame_ptr->saved_page->fileptr, zero,
    frame_ptr->saved_page->bytes_to_read, frame_ptr->saved_page->bytes_to_zero );
  }
  //possible need to use a semaphore for a thread's page directory here
  pagedir_clear_page (frame_ptr->owner->pagedir, frame_ptr->upage);
- pagedir_set_pte (frame_ptr->owner->pagedir, frame_ptr->upage, new_page);
+ pagedir_set_pte (frame_ptr->owner->pagedir, frame_ptr->upage, &new_page);
  
  list_remove(iterator);
  palloc_free_page(frame_ptr->paddr);
- free(frame_ptr);
- 
- 
-  
+ free(frame_ptr);  
 }  
  
 
 
 bool frame_free (void * paddr){
-  struct list_elem iterator;
+  struct list_elem * iterator;
   struct frame * frame_ptr;
   
-  lock_acquire(&frame_lock);
+  //lock_acquire(&frame_lock);
   
   iterator = list_begin(&frame_list);
   while (iterator != list_end(&frame_list)){
@@ -122,16 +120,16 @@ bool frame_free (void * paddr){
   list_remove(iterator);
   free(frame_ptr);
   
-  lock_release(&frame_lock);
+  //lock_release(&frame_lock);
  }
  
 bool frame_pin (void * address, bool user_or_kernal, bool pinval){
   void * paddr;
-  struct list_elem iterator;
+  struct list_elem * iterator;
   struct frame * frame_ptr;
   
   if (!user_or_kernal){//user_or_kernal being false means a virtual address was passed, physical address otherwise
-    paddr = pagedir_get_page(thread_current()->pagedir, pg_round_down(vaddr));
+    paddr = pagedir_get_page(thread_current()->pagedir, pg_round_down(address));
   } else {
     paddr = address;
   }
@@ -152,4 +150,4 @@ bool frame_pin (void * address, bool user_or_kernal, bool pinval){
   } 
   frame_ptr->pin = pinval;
   return true;
- }
+}

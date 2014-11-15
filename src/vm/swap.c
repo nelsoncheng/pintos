@@ -28,7 +28,7 @@ void swap_retrieve(struct swap_member * member, void * physical_address){
   int i;
   bitmap_set_multiple(free_list, member->start_address, page_to_sector_ratio, true);
   for (i = 0; i < page_to_sector_ratio; i++){
-    block_read(swap, member->start_address + i, physical_address + (BLOCK_SECTOR_SIZE * i));
+    block_read(swap_block, member->start_address + i, physical_address + (BLOCK_SECTOR_SIZE * i));
   }
   lock_release(&block_lock);
 }

@@ -128,6 +128,7 @@ struct thread
 	struct loaded child_loaded;
 	
 	void * kernel_stack_pointer;
+	struct semaphore pagedir_sema;
 
 #ifdef USERPROG
     /* Owned by userprog/process.c. */

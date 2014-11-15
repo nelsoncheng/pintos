@@ -514,6 +514,7 @@ init_thread (struct thread *t, const char *name, int priority)
   t->sleep_sema = &sleep_timer_list;
   sema_init(&t->our_sema, 0);
   t->fd_counter = 2;
+  sema_init(&t->pagedir_sema, 1);
   list_init(&t->files);
 
   //list_insert_ordered (&all_list, &t->allelem, *priority_less_func, NULL);
