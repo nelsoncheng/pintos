@@ -1,6 +1,7 @@
 #include "vm/swap.h"
 
 
+//Jonathan coding
 struct swap_member * swap_insert(struct frame *frame_ptr){
   int i;
   lock_acquire(&block_lock);
@@ -23,6 +24,7 @@ struct swap_member * swap_insert(struct frame *frame_ptr){
   return member;
 }
 
+//Nelson coding
 void swap_retrieve(struct swap_member * member, void * physical_address){
   lock_acquire(&block_lock);
   int i;
@@ -39,6 +41,7 @@ void swap_free_bitmap(struct swap_member *member){
   lock_release(&block_lock);
 }
 
+//Jonthan coding
 void swap_init(){
     swap_block = block_get_role(BLOCK_SWAP);
     size = block_size(swap_block);

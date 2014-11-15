@@ -29,6 +29,7 @@ pagedir_create (void)
 void
 pagedir_destroy (uint32_t *pd) 
 {
+	//Jonathan coding
   uint32_t *pde, *paddr;
   struct pte *sup_pte;
 
@@ -99,6 +100,8 @@ lookup_page (uint32_t *pd, const void *vaddr, bool create)
   return &pt[pt_no (vaddr)];
 }
 
+
+//Nelson coding
 bool
 pagedir_set_pte (uint32_t *pd, void *upage, struct pte *page_table_entry)
 {
@@ -115,12 +118,15 @@ pagedir_set_pte (uint32_t *pd, void *upage, struct pte *page_table_entry)
   if (pte != NULL) 
     {
       ASSERT ((*pte & PTE_P) == 0);
-      *pte = (uint32_t) page_table_entry;
+      pte = (uint32_t) page_table_entry;
       return true;
     }
-  else
+  else{
     return false;
+	printf("wasnt able to set supplemental page\n");
+	}
 }
+
 
 /* Adds a mapping in page directory PD from user virtual page
    UPAGE to the physical frame identified by kernel virtual
@@ -159,13 +165,14 @@ pagedir_set_page (uint32_t *pd, void *upage, void *kpage, bool writable)
    address UADDR in PD.  Returns the kernel virtual address
    corresponding to that physical address, or a null pointer if
    UADDR is unmapped. */
+
 void *
 pagedir_get_page (uint32_t *pd, const void *uaddr) 
 {
   uint32_t *pte;
 
   ASSERT (is_user_vaddr (uaddr));
-  
+  //Nelson coding
   //keep the original functionality
   pte = lookup_page (pd, uaddr, false);
   if (pte != NULL && (*pte & PTE_P) != 0){
@@ -180,6 +187,8 @@ pagedir_get_page (uint32_t *pd, const void *uaddr)
       //this means the pte is a pointer to a supplemental pte
   }
 }
+
+
 
 /* Marks user virtual page UPAGE "not present" in page
    directory PD.  Later accesses to the page will fault.  Other

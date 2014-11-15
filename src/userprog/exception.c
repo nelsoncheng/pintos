@@ -155,10 +155,10 @@ page_fault (struct intr_frame *f)
   not_present = (f->error_code & PF_P) == 0;
   write = (f->error_code & PF_W) != 0;
   user = (f->error_code & PF_U) != 0;
-
+	//Jonathan coding
   if (!is_user_vaddr(fault_addr)){
 	printf("not valid user virtual address, exiting.\n");
-  	//do the magical syscall_exiting if the fault address is unmapped and not a stack access, hope this works
+  	//do the magical syscall_exiting if the fault address is unmapped and not a stack access
   	 int retval;                                                    
           asm volatile                                                   
             ("pushl %[arg0]; pushl %[number]; int $0x30; addl $8, %%esp" 
@@ -172,11 +172,11 @@ page_fault (struct intr_frame *f)
   
   //get the page that contains the faulting virtual address
   page = (void*) pg_round_down(fault_addr);
-  printf("faulting page: %u\n", page);
+  //printf("faulting page: %u\n", page);
   sema_down(&thread_current()->pagedir_sema);
   sup_pte = pagedir_get_page(thread_current()->pagedir, page);
   sema_up(&thread_current()->pagedir_sema);
-  printf("sup_pte : %u\n", sup_pte); 
+  //printf("sup_pte : %u\n", sup_pte); 
 
   //get the appropriate stack pointer (kernel or user)
   if (f->cs == SEL_UCSEG){
@@ -184,27 +184,16 @@ page_fault (struct intr_frame *f)
   } else {
   	stack_ptr = thread_current()->kernel_stack_pointer;
   }
- 	printf("stack pointer: %u\n", stack_ptr);
-	printf("stack pointer user: %u\n", f->esp);
-	printf("stack pointer kernel: %u\n", thread_current()->kernel_stack_pointer);
+  //printf("stack address: %u\n", stack_ptr);
   	bool success = false;
 	
 	if ((fault_addr < PHYS_BASE) && (fault_addr > STACK_BOTTOM) && (fault_addr + 32 >= stack_ptr))
 		success = true;
-	
-	if (!(fault_addr < PHYS_BASE)){
-		printf("1, %u, %u\n", fault_addr, PHYS_BASE);
-	}
-	if (!(fault_addr > STACK_BOTTOM)){
-		printf("2, %u, %u\n", fault_addr, STACK_BOTTOM);
-	}
-	if (!((fault_addr + 32) >= stack_ptr)){
-		printf("3, %u, %u\n", fault_addr +32, stack_ptr);
-	}
-	
+	//Nelson coding
     if (sup_pte == NULL && !success){
+		debug_backtrace();
 		printf("not stack address, exiting.\n");
-	  	//do the magical syscall_exiting if the fault address is unmapped and not a 		stack access, hope this works
+	  	//do the magical syscall_exiting if the fault address is unmapped and not a stack access
 	  	 int retval;                                                    
 		      asm volatile                                                   
 		        ("pushl %[arg0]; pushl %[number]; int $0x30; addl $8, %%esp" 
@@ -216,7 +205,7 @@ page_fault (struct intr_frame *f)
   } 
   if (sup_pte == NULL){
   	//if we get in here then we need a new stack page
-	printf("allocating new stack page...\n");
+	//printf("allocating new stack page...\n");
   	frame = frame_get(page, true, NULL);
 	sema_down(&thread_current()->pagedir_sema);
   	pagedir_clear_page(thread_current()->pagedir, page);
@@ -232,26 +221,40 @@ page_fault (struct intr_frame *f)
   }
   //if the fault wasnt a stack access, then the supplemental page becomes relevant
   struct pte * supplemental_pte = (struct pte *) sup_pte;
-  frame = frame_get(page, true, supplemental_pte);
-  printf("got past stack\n");
+  frame = NULL;
+  while (frame == NULL){
+  frame = (uint8_t)frame_get(page, true, supplemental_pte);
+	//printf("frame = %u\n", frame);
+  }
   bool dirty_bit;
-  
+  if (frame == NULL){
+	//printf("got a null frame from palloc\n");	
+  }
+	//Jonathan coding
   if (supplemental_pte->ptype == EXECUTABLE_PAGE){
+	
   	dirty_bit = false;
-  	//syscall_file_lock_acquire();
-	printf("just installed a real page\n");
-  	if (file_read (supplemental_pte->fileptr, frame, supplemental_pte->bytes_to_read) != (int) supplemental_pte->bytes_to_read)
+	
+  	syscall_file_lock_acquire();
+	void * temp_buffer;
+	file_seek(supplemental_pte->fileptr, supplemental_pte->file_offset);
+  	if (file_read (supplemental_pte->fileptr, temp_buffer, supplemental_pte->bytes_to_read) != (int) supplemental_pte->bytes_to_read)
 	{
 		syscall_file_lock_release();
 		palloc_free_page (frame);
 		PANIC ("File_read in page fault handler didnt read enough bytes");
-	}
-	//syscall_file_lock_release();
+	}	
+	//printf("just installed a real page\n");
+	syscall_file_lock_release();
+	frame_pin(frame, true, true);
+	memcpy(frame, temp_buffer, PGSIZE);
+	frame_pin(frame, true, false);
+
 	memset(frame + supplemental_pte->bytes_to_read, 0, supplemental_pte->bytes_to_zero);
-	printf("just installed a real page\n");
+	
   } else if (supplemental_pte->ptype == MMAP_FILE_PAGE){
   	//extra credit?
-  	printf("how did we even get here (mmap file page)\n");
+  	//printf("how did we even get here (mmap file page)\n");
   } else if (supplemental_pte->ptype == ZERO_PAGE){
   	memset (frame, 0, PGSIZE);
   	dirty_bit = false;
@@ -267,6 +270,7 @@ page_fault (struct intr_frame *f)
   pagedir_clear_page(thread_current()->pagedir, page);
   success = pagedir_set_page(thread_current()->pagedir, page, frame, supplemental_pte->read_only);
   if (!success){
+	//printf("failed to set the real page table entry\n");
   	frame_free(frame);
   }
   pagedir_set_accessed(thread_current()->pagedir, page, true);

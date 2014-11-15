@@ -1,6 +1,7 @@
 #include "vm/page.h"
 #include "threads/malloc.h"
 
+//Nelson coding
 struct pte * page_new(page_type type, int offset, bool read_or_write, struct file * source_file, bool zero, size_t read_bytes, size_t zero_bytes){
   
   struct pte * new_pte = (struct pte *) malloc(sizeof(struct pte));
@@ -27,7 +28,7 @@ struct pte * page_new(page_type type, int offset, bool read_or_write, struct fil
   
   return new_pte;
 }
-
+//Jonathan coding
 struct pte* page_swap_pte(struct swap_member * swap){
   struct pte * new_pte = (struct pte *) malloc(sizeof(struct pte));
   if (new_pte == NULL){

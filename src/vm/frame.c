@@ -14,16 +14,17 @@ void frame_external_lock_release(){
   lock_release(&frame_lock);
 }
 
+//Jonathan coding
 void * frame_get(void * vpage, bool zero_page, struct pte * sup_pte){
   void * kpage = palloc_get_page ( PAL_USER | (zero_page ? PAL_ZERO : 0) );
   
-  if(kpage == NULL) {
+  while (kpage == NULL) {
+	//PANIC ("eviction");
     lock_acquire(&frame_lock);
     frame_evict();
     kpage = palloc_get_page ( PAL_USER | (zero_page ? PAL_ZERO : 0) );
     lock_release(&frame_lock);
-  }
-  
+  } 
   struct frame * new_frame = (struct frame*) malloc (sizeof (struct frame));
   new_frame->paddr = kpage;
   new_frame->upage = vpage;
@@ -33,10 +34,12 @@ void * frame_get(void * vpage, bool zero_page, struct pte * sup_pte){
   lock_acquire(&frame_lock);
   list_push_back(&frame_list, &new_frame->elem);
   lock_release(&frame_lock);
-  
+
+  printf("kpage = %u\n", kpage);
   return kpage;
 }
 
+//Nelson coding
 void frame_evict(){//FIFO evict
  struct list_elem * iterator;
  struct frame * frame_ptr, * true_page;
@@ -52,7 +55,7 @@ void frame_evict(){//FIFO evict
   iterator = list_next(iterator);
  }
  */
- //clock
+ //clock, Jonathan coding
  iterator = next_elem;
  for (i = 0; i < 2 && true_page == NULL; i++){
    while (iterator != list_end(&frame_list)){
@@ -101,7 +104,7 @@ void frame_evict(){//FIFO evict
 }  
  
 
-
+//Nelson coding
 bool frame_free (void * paddr){
   struct list_elem * iterator;
   struct frame * frame_ptr;
@@ -123,6 +126,7 @@ bool frame_free (void * paddr){
   //lock_release(&frame_lock);
  }
  
+//Jonathan coding
 bool frame_pin (void * address, bool user_or_kernal, bool pinval){
   void * paddr;
   struct list_elem * iterator;

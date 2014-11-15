@@ -14,6 +14,7 @@
 #include "threads/vaddr.h"
 
 
+//Nelson coding
 struct block *swap_block;
 struct lock block_lock;
 int size;
@@ -22,7 +23,7 @@ struct bitmap *free_list;
 
 // initializing our lists locks, and anything else
 void swap_init();
-struct swap_member * swap_insert(struct frame *frame_ptr);
-void swap_retrieve(struct swap_member * member, void * physical_address);
+struct swap_member * swap_insert(struct frame *);
+void swap_retrieve(struct swap_member *, void *);
 
 #endif

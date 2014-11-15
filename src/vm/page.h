@@ -11,7 +11,7 @@ struct swap_member{
   block_sector_t start_address;
 };
 
-
+//Jonathan coding
 struct pte{
   struct file *fileptr;
   // the byte we're at in the current file

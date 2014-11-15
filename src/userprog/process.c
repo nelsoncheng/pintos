@@ -507,6 +507,7 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
       page_table_entry = page_new(EXECUTABLE_PAGE, offset, writable, file, zero, page_read_bytes, page_zero_bytes);
 
       /* Put the page's information in the page directory for future loading */
+	  printf(" Allocating address %u to address: %u\n", upage, page_table_entry);
       if (!((pagedir_get_page(thread_current()->pagedir, upage) == 0) && (pagedir_set_pte(thread_current()->pagedir, upage, page_table_entry)))){
       	free(page_table_entry);
       	return false;
@@ -516,7 +517,6 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
       upage += PGSIZE;
       read_bytes -= page_read_bytes;
       zero_bytes -= page_zero_bytes;
-	  printf("just added a supplemental page to virtual memory\n");
     }
   file_seek (file, ofs);
   return true;
