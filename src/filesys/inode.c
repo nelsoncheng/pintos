@@ -17,9 +17,27 @@ struct inode_disk
     block_sector_t start;               /* First data sector. */
     off_t length;                       /* File size in bytes. */
     unsigned magic;                     /* Magic number. */
-    uint32_t unused[125];               /* Not used. */
+    block_sector_t blocks[123];
+    inode_disk_indirect * indirect1;
+    inode_disk_double_indirect * indirect2;
   };
+  
+struct inode_disk_indirect
+{
+   block_sector_t start;               /* First data sector. */
+   off_t length;                       /* File size in bytes. */
+   unsigned magic;                     /* Magic number. */
+   block_sector_t blocks[125];
+};
 
+struct inode_disk_double_indirect
+{
+   block_sector_t start;               /* First data sector. */
+   off_t length;                       /* File size in bytes. */
+   unsigned magic;                     /* Magic number. */
+   inode_disk_indirect * tables[125];
+};
+   
 /* Returns the number of sectors to allocate for an inode SIZE
    bytes long. */
 static inline size_t
