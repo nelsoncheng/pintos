@@ -65,8 +65,15 @@ static block_sector_t
 byte_to_sector (const struct inode *inode, off_t pos) 
 {
   ASSERT (inode != NULL);
-  if (pos < inode->data.length)
-    return inode->data.start + pos / BLOCK_SECTOR_SIZE;
+  if (pos < inode->data.length){
+    if (pos < 124){
+       
+    } else if (pos > 123 && pos < 248) {
+       
+    } else {
+       
+    }
+  }
   else
     return -1;
 }
