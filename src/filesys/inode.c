@@ -218,7 +218,8 @@ inode_close (struct inode *inode)
   /* Ignore null pointer. */
   if (inode == NULL)
     return;
-
+  block_write (fs_device, sector, inode->data);
+  
   /* Release resources if this was the last opener. */
   if (--inode->open_cnt == 0)
     {
@@ -386,6 +387,7 @@ inode_write_at (struct inode *inode, const void *buffer_, off_t size,
          }
       }
       inode->data.length = size + offset;     
+      free (sector_pos_array);
   }
   while (size > 0) 
     {
