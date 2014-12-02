@@ -347,7 +347,46 @@ inode_write_at (struct inode *inode, const void *buffer_, off_t size,
 
   if (inode->deny_write_cnt)
     return 0;
-
+  
+  if ((size + offset) > inode->data.length){
+     //grow the file
+     size_t sectors = bytes_to_sectors(size + offset - inode->data.length);
+     block_sector_t * sector_pos_array = (block_sector_t *) malloc(sectors * sizeof(block_sector_t));
+     
+     if (!freemap_allocate_discontinuous(sectors, sector_pos_array)){
+        //filesystem cannot accomodate this growth, write nothing
+        return 0;
+     }
+     
+     static char zeros[BLOCK_SECTOR_SIZE];
+     size_t i;
+     for (i = 0; i < sectors; i++) {
+       block_write (fs_device, sector_pos_array[i], zeros);
+     }
+              
+     if (sectors < 124){
+         memcpy(inode->data->blocks, sector_pos_array[0], sectors * sizeof (block_sector_t));
+      } else if (sectors > 123 && sectors <= 248){
+         memcpy(inode->data.blocks, sector_pos_array[0], 123 * sizeof (block_sector_t));
+         memcpy(inode->data.indirect1->blocks, sector_pos_array[123], (sectors - 123) * sizeof (block_sector_t));
+      } else {
+         memcpy(inode->data.blocks, sector_pos_array, 123 * (sizeof block_sector_t));
+         memcpy(inode->data.indirect1->blocks, sector_pos_array[123], 125 * (sizeof block_sector_t));
+         int first_level_index = (sectors - 248) / 125;
+         int i;
+         int sectors_remaining = sectors - 248;
+         for (i = 0; i < first_level_index; i++){
+            if (sectors_remaining < 125 || sectors_remaining > 0){
+               memcpy(inode->data.indirect2->table_array[i]->blocks, sector_pos_array[248 + (i* 125)], sectors_remaining * (sizeof block_sector_t));
+            }
+            else {
+               memcpy(inode->data.indirect2->table_array[i]->blocks, sector_pos_array[248 + (i* 125)], 125 * (sizeof block_sector_t));
+            }
+            sectors_remaining -= 125;
+         }
+      }
+               
+  }
   while (size > 0) 
     {
       /* Sector to write, starting byte offset within sector. */
