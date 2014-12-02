@@ -18,8 +18,8 @@ struct inode_disk
     off_t length;                       /* File size in bytes. */
     unsigned magic;                     /* Magic number. */
     block_sector_t blocks[123];         /* Pointers to device blocks */
-    inode_disk_indirect * indirect1;    /* Pointer to inode of pointers to device blocks */
-    inode_disk_double_indirect * indirect2; /* Pointer to inode of pointers to inodes of pointers to device blocks */
+    struct inode_disk_indirect * indirect1;    /* Pointer to inode of pointers to device blocks */
+    struct inode_disk_double_indirect * indirect2; /* Pointer to inode of pointers to inodes of pointers to device blocks */
   };
   
 struct inode_disk_indirect
@@ -35,7 +35,7 @@ struct inode_disk_double_indirect
    block_sector_t start;               /* First data sector. */
    off_t length;                       /* File size in bytes. */
    unsigned magic;                     /* Magic number. */
-   inode_disk_indirect * table_array[125]; /* pointers to inode_disk_indirect */
+   struct inode_disk_indirect * table_array[125]; /* pointers to inode_disk_indirect */
 };
    
 /* Returns the number of sectors to allocate for an inode SIZE
