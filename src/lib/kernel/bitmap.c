@@ -256,13 +256,13 @@ bitmap_allocate_discontinuous (const struct bitmap *b, size_t cnt, int * sector_
 
   value_cnt = 0;
   for (i = 0; i < fs_size; i++){
+    if (value_cnt >= cnt){
+         break;
+    }
     if (bitmap_test (b, start + i) == false){
       sector_positions[value_cnt] = i;
       bitmap_flip(b, i);
       value_cnt++;
-      if (value_cnt >= cnt){
-         break;
-      }
     }
   }
   return value_cnt;
