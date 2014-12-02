@@ -135,7 +135,8 @@ inode_create (block_sector_t sector, off_t length)
                  memcpy(disk_inode.blocks, sector_pos_array, 123 * (sizeof block_sector_t));
                  memcpy(disk_inode.indirect1->blocks, sector_pos_array[123], 125 * (sizeof block_sector_t));
                  int first_level_index = (sectors - 248) / 125;
-                 int i, sectors_remaining;
+                 int i;
+                 int sectors_remaining = sectors - 248;
                  for (i = 0; i < first_level_index; i++){
                     if (sectors_remaining < 125 || sectors_remaining > 0){
                        memcpy(disk_inode.indirect2->table_array[i]->blocks, sector_pos_array[248 + (i* 125)], sectors_remaining * (sizeof block_sector_t));
@@ -145,8 +146,9 @@ inode_create (block_sector_t sector, off_t length)
                     sectors_remaining -= 125;
                  }
                }
-               block_write (fs_device, sector, disk_inode);
+               
             }
+          block_write (fs_device, sector, disk_inode);
           success = true; 
         } 
       free (disk_inode);
@@ -227,10 +229,41 @@ inode_close (struct inode *inode)
       if (inode->removed) 
         {
           free_map_release (inode->sector, 1);
-          free_map_release (inode->data.start,
-                            bytes_to_sectors (inode->data.length)); 
+          
+          int sectors, i, j;
+          sectors = bytes_to_sectors(inode->data.length);
+          if (sectors <= 123){
+            for (i = 0; i < sectors, i++){
+               free_map_release (inode->data.blocks[i], 1); 
+            }
+          } else if (pos > 123 && pos <= 248) {
+            for (i = 0; i < 123, i++){
+               free_map_release (inode->data.blocks[i], 1); 
+            }
+            for (i = 0; i < (sectors - 123), i++){
+               free_map_release (inode->data.indirect1->blocks[i], 1); 
+            }
+          } else {
+            for (i = 0; i < 123, i++){
+               free_map_release (inode->data.blocks[i], 1); 
+            }
+            for (i = 0; i < 125, i++){
+               free_map_release (inode->data.indirect1->blocks[i], 1); 
+            }
+            int index = (sectors - 248) / 125;
+            int sectors_remaining = sectors - 248;
+            for (i = 0; i < index; i++){
+               if (sectors_remaining < 125 || sectors_remaining > 0){
+                 for (j = 0; j < sectors_remaining; j++)
+                     free_map_release (inode->data.indirect2->table_array[i]->blocks[j], 1);
+               } else {
+                  for (j = 0; j < 125; j++)
+                     free_map_release (inode->data.indirect2->table_array[i]->blocks[j], 1);
+               }
+               sectors_remaining -= 125;
+            }
+          }
         }
-
       free (inode); 
     }
 }
