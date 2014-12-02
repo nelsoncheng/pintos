@@ -67,11 +67,13 @@ byte_to_sector (const struct inode *inode, off_t pos)
   ASSERT (inode != NULL);
   if (pos < inode->data.length){
     if (pos < 124){
-       
+       return inode->data.blocks[pos - 1];
     } else if (pos > 123 && pos < 248) {
-       
+       return inode->data.indirect1->blocks[pos - 1];
     } else {
-       
+       int first_level_index = (pos - 248) / 125;
+       int second_level_index = (pos - 248) % 125;
+       return inode->data.indirect2->table_array[first_level_index]->blocks[second_level_index];
     }
   }
   else
