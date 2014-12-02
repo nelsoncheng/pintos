@@ -121,6 +121,7 @@ inode_create (block_sector_t sector, off_t length)
             {
               static char zeros[BLOCK_SECTOR_SIZE];
               size_t i;
+              int first_level_index = (sectors - 248) / 125;
               
               for (i = 0; i < sectors; i++) {
                 block_write (fs_device, sector_pos_array[i], zeros);
@@ -128,16 +129,24 @@ inode_create (block_sector_t sector, off_t length)
               
               if (sectors < 124){
                  memcpy(disk_inode.blocks, sector_pos_array, sectors * sizeof (block_sector_t));
+                 block_write (fs_device, sector, disk_inode);
+                 free (disk_inode);
               } else if (sectors > 123 && sectors <= 248){
+                 disk_inode.indirect1 = (struct inode_disk_indirect *) malloc (sizeof struct inode_disk_indirect);
                  memcpy(disk_inode.blocks, sector_pos_array[0], 123 * sizeof (block_sector_t));
                  memcpy(disk_inode.indirect1->blocks, sector_pos_array[123], (sectors - 123) * sizeof (block_sector_t));
+                 block_sector_t inode_sector;
+                 free_map_allocate (1, &inode_sector);
               } else {
+                 disk_inode.indirect1 = (struct inode_disk_indirect *) malloc (sizeof struct inode_disk_indirect);
+                 disk_inode.indirect2 = (struct inode_disk_double_indirect *) malloc (sizeof struct inode_disk_double_indirect);
                  memcpy(disk_inode.blocks, sector_pos_array, 123 * (sizeof block_sector_t));
                  memcpy(disk_inode.indirect1->blocks, sector_pos_array[123], 125 * (sizeof block_sector_t));
-                 int first_level_index = (sectors - 248) / 125;
+                 
                  int i;
                  int sectors_remaining = sectors - 248;
                  for (i = 0; i < first_level_index; i++){
+                    disk_inode.indirect2->table_array[i] = (struct inode_disk_indirect *) malloc (sizeof struct inode_disk_indirect);
                     if (sectors_remaining < 125 || sectors_remaining > 0){
                        memcpy(disk_inode.indirect2->table_array[i]->blocks, sector_pos_array[248 + (i* 125)], sectors_remaining * (sizeof block_sector_t));
                     } else {
@@ -148,10 +157,9 @@ inode_create (block_sector_t sector, off_t length)
                }
                
             }
-          block_write (fs_device, sector, disk_inode);
+          
           success = true; 
         } 
-      free (disk_inode);
       free (sector_pos_array);
     }
   return success;
