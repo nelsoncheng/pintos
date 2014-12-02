@@ -10,32 +10,37 @@
 /* Identifies an inode. */
 #define INODE_MAGIC 0x494e4f44
 
+/* defines the capacities of the various types of inodes */
+#define INODE_SIZE 122
+#define INODE_INDIRECT_SIZE 128
+#define INODE_INDIRECT_2_SIZE 64
+#define COMBINED 250
+
+
 /* On-disk inode.
    Must be exactly BLOCK_SECTOR_SIZE bytes long. */
 struct inode_disk
   {
-    block_sector_t start;               /* First data sector. */
-    off_t length;                       /* File size in bytes. */
-    unsigned magic;                     /* Magic number. */
-    block_sector_t blocks[123];         /* Pointers to device blocks */
-    struct inode_disk_indirect * indirect1;    /* Pointer to inode of pointers to device blocks */
+    off_t length;                                  /* File size in bytes. */
+    unsigned magic;                                /* Magic number. */
+    
+    block_sector_t blocks[INODE_SIZE];             /* Location of actual data blocks on disk */
+    block_sector_t indirect1_block;                /* Pointer to first indirect inode on disk */
+    block_sector_t indirect2_block;                /* Pointer to second indirect inode on disk */
+    struct inode_disk_indirect * indirect1;        /* Pointer to inode of pointers to device blocks */
     struct inode_disk_double_indirect * indirect2; /* Pointer to inode of pointers to inodes of pointers to device blocks */
+    
   };
   
 struct inode_disk_indirect
 {
-   block_sector_t start;               /* First data sector. */
-   off_t length;                       /* File size in bytes. */
-   unsigned magic;                     /* Magic number. */
-   block_sector_t blocks[125];
+   block_sector_t blocks[INODE_INDIRECT_SIZE];     /* Location of actual data blocks on disk */
 };
 
 struct inode_disk_double_indirect
 {
-   block_sector_t start;               /* First data sector. */
-   off_t length;                       /* File size in bytes. */
-   unsigned magic;                     /* Magic number. */
-   struct inode_disk_indirect * table_array[125]; /* pointers to inode_disk_indirect */
+   block_sector_t inode_blocks[INODE_INDIRECT_2_SIZE];     /* pointers to inode_disk_indirect on disk */
+   struct inode_disk_indirect * table_array[INODE_INDIRECT_2_SIZE]; /* pointers to inode_disk_indirect while in memory*/
 };
    
 /* Returns the number of sectors to allocate for an inode SIZE
@@ -67,13 +72,13 @@ byte_to_sector (const struct inode *inode, off_t pos)
   ASSERT (inode != NULL);
   if (pos < inode->data.length){
     int sector = bytes_to_sectors(pos);
-    if (sector <= 123){
+    if (sector <= INODE_SIZE){
        return inode->data.blocks[sector - 1];
-    } else if (sector > 123 && sector <= 248) {
+    } else if (sector > INODE_SIZE && sector <= COMBINED) {
        return inode->data.indirect1->blocks[sector - 1];
     } else {
-       int first_level_index = (sector - 248) / 125;
-       int second_level_index = (sector - 248) % 125;
+       int first_level_index = (sector - COMBINED) / INODE_INDIRECT_SIZE;
+       int second_level_index = (sector - COMBINED) % INODE_INDIRECT_SIZE;
        return inode->data.indirect2->table_array[first_level_index]->blocks[second_level_index];
     }
   }
@@ -122,38 +127,39 @@ inode_create (block_sector_t sector, off_t length)
             {
               static char zeros[BLOCK_SECTOR_SIZE];
               size_t i;
-              int first_level_index = (sectors - 248) / 125;
+              int first_level_index = (sectors - COMBINED) / INODE_INDIRECT_SIZE;
               
               for (i = 0; i < sectors; i++) {
                 block_write (fs_device, sector_pos_array[i], zeros);
               }
               
-              if (sectors < 124){
+              if (sectors =< INODE_SIZE){
                  memcpy(disk_inode.blocks, sector_pos_array, sectors * sizeof (block_sector_t));
                  block_write (fs_device, sector, disk_inode);
                  free (disk_inode);
-              } else if (sectors > 123 && sectors <= 248){
+              } else if (sectors > INODE_SIZE && sectors <= COMBINED){
                  disk_inode.indirect1 = (struct inode_disk_indirect *) malloc (sizeof struct inode_disk_indirect);
-                 memcpy(disk_inode.blocks, sector_pos_array[0], 123 * sizeof (block_sector_t));
-                 memcpy(disk_inode.indirect1->blocks, sector_pos_array[123], (sectors - 123) * sizeof (block_sector_t));
-                 block_sector_t inode_sector;
-                 free_map_allocate (1, &inode_sector);
+                 memcpy(disk_inode.blocks, sector_pos_array[0], INODE_SIZE * sizeof (block_sector_t));
+                 memcpy(disk_inode.indirect1->blocks, sector_pos_array[INODE_SIZE], (sectors - INODE_SIZE) * sizeof (block_sector_t));
+                 block_sector_t indirect_sector;
+                 free_map_allocate (1, &indirect_sector);
+                 disk_inode.
               } else {
                  disk_inode.indirect1 = (struct inode_disk_indirect *) malloc (sizeof struct inode_disk_indirect);
                  disk_inode.indirect2 = (struct inode_disk_double_indirect *) malloc (sizeof struct inode_disk_double_indirect);
-                 memcpy(disk_inode.blocks, sector_pos_array, 123 * (sizeof block_sector_t));
-                 memcpy(disk_inode.indirect1->blocks, sector_pos_array[123], 125 * (sizeof block_sector_t));
+                 memcpy(disk_inode.blocks, sector_pos_array, INODE_SIZE * (sizeof block_sector_t));
+                 memcpy(disk_inode.indirect1->blocks, sector_pos_array[INODE_SIZE], INODE_INDIRECT_SIZE * (sizeof block_sector_t));
                  
                  int i;
-                 int sectors_remaining = sectors - 248;
+                 int sectors_remaining = sectors - COMBINED;
                  for (i = 0; i < first_level_index; i++){
                     disk_inode.indirect2->table_array[i] = (struct inode_disk_indirect *) malloc (sizeof struct inode_disk_indirect);
-                    if (sectors_remaining < 125){
-                       memcpy(disk_inode.indirect2->table_array[i]->blocks, sector_pos_array[248 + (i* 125)], sectors_remaining * (sizeof block_sector_t));
+                    if (sectors_remaining < INODE_INDIRECT_SIZE){
+                       memcpy(disk_inode.indirect2->table_array[i]->blocks, sector_pos_array[COMBINED + (i* INODE_INDIRECT_SIZE)], sectors_remaining * (sizeof block_sector_t));
                     } else {
-                       memcpy(disk_inode.indirect2->table_array[i]->blocks, sector_pos_array[248 + (i* 125)], 125 * (sizeof block_sector_t));
+                       memcpy(disk_inode.indirect2->table_array[i]->blocks, sector_pos_array[COMBINED + (i* INODE_INDIRECT_SIZE)], INODE_INDIRECT_SIZE * (sizeof block_sector_t));
                     }
-                    sectors_remaining -= 125;
+                    sectors_remaining -= INODE_INDIRECT_SIZE;
                  }
                }
                
@@ -242,35 +248,35 @@ inode_close (struct inode *inode)
           
           int sectors, i, j;
           sectors = bytes_to_sectors(inode->data.length);
-          if (sectors <= 123){
+          if (sectors <= INODE_SIZE){
             for (i = 0; i < sectors, i++){
                free_map_release (inode->data.blocks[i], 1); 
             }
-          } else if (pos > 123 && pos <= 248) {
-            for (i = 0; i < 123, i++){
+          } else if (pos > INODE_SIZE && pos <= COMBINED) {
+            for (i = 0; i < INODE_SIZE, i++){
                free_map_release (inode->data.blocks[i], 1); 
             }
-            for (i = 0; i < (sectors - 123), i++){
+            for (i = 0; i < (sectors - INODE_SIZE), i++){
                free_map_release (inode->data.indirect1->blocks[i], 1); 
             }
           } else {
-            for (i = 0; i < 123, i++){
+            for (i = 0; i < INODE_SIZE, i++){
                free_map_release (inode->data.blocks[i], 1); 
             }
-            for (i = 0; i < 125, i++){
+            for (i = 0; i < INODE_INDIRECT_SIZE, i++){
                free_map_release (inode->data.indirect1->blocks[i], 1); 
             }
-            int index = (sectors - 248) / 125;
-            int sectors_remaining = sectors - 248;
+            int index = (sectors - COMBINED) / INODE_INDIRECT_SIZE;
+            int sectors_remaining = sectors - COMBINED;
             for (i = 0; i < index; i++){
-               if (sectors_remaining < 125 || sectors_remaining > 0){
+               if (sectors_remaining < INODE_INDIRECT_SIZE || sectors_remaining > 0){
                  for (j = 0; j < sectors_remaining; j++)
                      free_map_release (inode->data.indirect2->table_array[i]->blocks[j], 1);
                } else {
-                  for (j = 0; j < 125; j++)
+                  for (j = 0; j < INODE_INDIRECT_SIZE; j++)
                      free_map_release (inode->data.indirect2->table_array[i]->blocks[j], 1);
                }
-               sectors_remaining -= 125;
+               sectors_remaining -= INODE_INDIRECT_SIZE;
             }
           }
         }
@@ -374,25 +380,25 @@ inode_write_at (struct inode *inode, const void *buffer_, off_t size,
        block_write (fs_device, sector_pos_array[i], zeros);
      }
               
-     if (sectors < 124){
+     if (sectors =< INODE_SIZE){
          memcpy(inode->data.blocks, sector_pos_array[0], sectors * sizeof (block_sector_t));
-      } else if (sectors > 123 && sectors <= 248){
-         memcpy(inode->data.blocks, sector_pos_array[0], 123 * sizeof (block_sector_t));
-         memcpy(inode->data.indirect1->blocks, sector_pos_array[123], (sectors - 123) * sizeof (block_sector_t));
+      } else if (sectors > INODE_SIZE && sectors <= COMBINED){
+         memcpy(inode->data.blocks, sector_pos_array[0], INODE_SIZE * sizeof (block_sector_t));
+         memcpy(inode->data.indirect1->blocks, sector_pos_array[INODE_SIZE], (sectors - INODE_SIZE) * sizeof (block_sector_t));
       } else {
-         memcpy(inode->data.blocks, sector_pos_array, 123 * (sizeof block_sector_t));
-         memcpy(inode->data.indirect1->blocks, sector_pos_array[123], 125 * (sizeof block_sector_t));
-         int first_level_index = (sectors - 248) / 125;
+         memcpy(inode->data.blocks, sector_pos_array, INODE_SIZE * (sizeof block_sector_t));
+         memcpy(inode->data.indirect1->blocks, sector_pos_array[INODE_SIZE], INODE_INDIRECT_SIZE * (sizeof block_sector_t));
+         int first_level_index = (sectors - COMBINED) / INODE_INDIRECT_SIZE;
          int i;
-         int sectors_remaining = sectors - 248;
+         int sectors_remaining = sectors - COMBINED;
          for (i = 0; i < first_level_index; i++){
-            if (sectors_remaining < 125 || sectors_remaining > 0){
-               memcpy(inode->data.indirect2->table_array[i]->blocks, sector_pos_array[248 + (i* 125)], sectors_remaining * (sizeof block_sector_t));
+            if (sectors_remaining < INODE_INDIRECT_SIZE || sectors_remaining > 0){
+               memcpy(inode->data.indirect2->table_array[i]->blocks, sector_pos_array[COMBINED + (i* INODE_INDIRECT_SIZE)], sectors_remaining * (sizeof block_sector_t));
             }
             else {
-               memcpy(inode->data.indirect2->table_array[i]->blocks, sector_pos_array[248 + (i* 125)], 125 * (sizeof block_sector_t));
+               memcpy(inode->data.indirect2->table_array[i]->blocks, sector_pos_array[COMBINED + (i* INODE_INDIRECT_SIZE)], INODE_INDIRECT_SIZE * (sizeof block_sector_t));
             }
-            sectors_remaining -= 125;
+            sectors_remaining -= INODE_INDIRECT_SIZE;
          }
       }
       inode->data.length = size + offset;     
