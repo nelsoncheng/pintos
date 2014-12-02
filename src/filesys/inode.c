@@ -66,13 +66,14 @@ byte_to_sector (const struct inode *inode, off_t pos)
 {
   ASSERT (inode != NULL);
   if (pos < inode->data.length){
-    if (pos <= 123){
-       return inode->data.blocks[pos - 1];
-    } else if (pos > 123 && pos <= 248) {
-       return inode->data.indirect1->blocks[pos - 1];
+    int sector = bytes_to_sectors(pos);
+    if (sector <= 123){
+       return inode->data.blocks[sector - 1];
+    } else if (sector > 123 && sector <= 248) {
+       return inode->data.indirect1->blocks[sector - 1];
     } else {
-       int first_level_index = (pos - 248) / 125;
-       int second_level_index = (pos - 248) % 125;
+       int first_level_index = (sector - 248) / 125;
+       int second_level_index = (sector - 248) % 125;
        return inode->data.indirect2->table_array[first_level_index]->blocks[second_level_index];
     }
   }
@@ -147,7 +148,7 @@ inode_create (block_sector_t sector, off_t length)
                  int sectors_remaining = sectors - 248;
                  for (i = 0; i < first_level_index; i++){
                     disk_inode.indirect2->table_array[i] = (struct inode_disk_indirect *) malloc (sizeof struct inode_disk_indirect);
-                    if (sectors_remaining < 125 || sectors_remaining > 0){
+                    if (sectors_remaining < 125){
                        memcpy(disk_inode.indirect2->table_array[i]->blocks, sector_pos_array[248 + (i* 125)], sectors_remaining * (sizeof block_sector_t));
                     } else {
                        memcpy(disk_inode.indirect2->table_array[i]->blocks, sector_pos_array[248 + (i* 125)], 125 * (sizeof block_sector_t));
