@@ -11,26 +11,28 @@
 #define INODE_MAGIC 0x494e4f44
 
 /* defines the capacities of the various types of inodes */
-#define INODE_SIZE 122
+#define INODE_SIZE 120
 #define INODE_INDIRECT_SIZE 128
 #define INODE_INDIRECT_2_SIZE 64
-#define COMBINED 250
+#define COMBINED 248 //INODE_SIZE + INODE_INDIRECT_SIZE
 
 
 /* On-disk inode.
    Must be exactly BLOCK_SECTOR_SIZE bytes long. */
 struct inode_disk
-  {
-    off_t length;                                  /* File size in bytes. */
-    unsigned magic;                                /* Magic number. */
-    
-    block_sector_t blocks[INODE_SIZE];             /* Location of actual data blocks on disk */
-    block_sector_t indirect1_block;                /* Pointer to first indirect inode on disk */
-    block_sector_t indirect2_block;                /* Pointer to second indirect inode on disk */
-    struct inode_disk_indirect * indirect1;        /* Pointer to inode of pointers to device blocks */
-    struct inode_disk_double_indirect * indirect2; /* Pointer to inode of pointers to inodes of pointers to device blocks */
-    
-  };
+ {
+   off_t length;                                  /* File size in bytes. */
+   unsigned magic;                                /* Magic number. */
+ 
+   block_sector_t blocks[INODE_SIZE];             /* Location of actual data blocks on disk */
+   block_sector_t indirect1_block;                /* Pointer to first indirect inode on disk */
+   block_sector_t indirect2_block;                /* Pointer to second indirect inode on disk */
+   block_sector_t indirect2_2_block;
+   struct inode_disk_indirect * indirect1;        /* Pointer to inode of pointers to device blocks */
+   struct inode_disk_double_indirect * indirect2; /* Pointer to inode of pointers to inodes of pointers to device blocks */
+   struct inode_disk_double_indirect * indirect2_2;
+   
+ };
   
 struct inode_disk_indirect
 {
@@ -60,6 +62,8 @@ struct inode
     bool removed;                       /* True if deleted, false otherwise. */
     int deny_write_cnt;                 /* 0: writes ok, >0: deny writes. */
     struct inode_disk data;             /* Inode content. */
+    
+    struct semaphore sync;
   };
 
 /* Returns the block device sector that contains byte offset POS
@@ -77,8 +81,8 @@ byte_to_sector (const struct inode *inode, off_t pos)
     } else if (sector > INODE_SIZE && sector <= COMBINED) {
        return inode->data.indirect1->blocks[sector - 1];
     } else {
-       int first_level_index = (sector - COMBINED) / INODE_INDIRECT_SIZE;
-       int second_level_index = (sector - COMBINED) % INODE_INDIRECT_SIZE;
+       int first_level_index = (sector - COMBINED - 1) / INODE_INDIRECT_SIZE;
+       int second_level_index = (sector - COMBINED - 1) % INODE_INDIRECT_SIZE;
        return inode->data.indirect2->table_array[first_level_index]->blocks[second_level_index];
     }
   }
@@ -168,19 +172,22 @@ inode_create (block_sector_t sector, off_t length)
                  for (i = 0; i < first_level_index; i++){
                     disk_inode.indirect2->table_array[i] = (struct inode_disk_indirect *) malloc (sizeof struct inode_disk_indirect);
                     free_map_allocate (1, &indirect_sector);
-                    disk_inode.indirect1_block = indirect_sector;
+                    disk_inode.indirect2->inode_blocks[i] = indirect_sector;
                     //left off here
                     if (sectors_remaining < INODE_INDIRECT_SIZE){
                        memcpy(disk_inode.indirect2->table_array[i]->blocks, sector_pos_array[COMBINED + (i* INODE_INDIRECT_SIZE)], sectors_remaining * (sizeof block_sector_t));
                     } else {
                        memcpy(disk_inode.indirect2->table_array[i]->blocks, sector_pos_array[COMBINED + (i* INODE_INDIRECT_SIZE)], INODE_INDIRECT_SIZE * (sizeof block_sector_t));
                     }
+                    block_write(fs_device, indirect_sector, disk_inode.indirect2->table_array[i]);
+                    free (disk_inode.indirect2->table_array[i]);
                     sectors_remaining -= INODE_INDIRECT_SIZE;
                  }
+                 free (disk_inode.indirect1);
+                 free (disk_inode.indirect2);
+                 free (disk_inode);
                }
-               
             }
-          
           success = true; 
         } 
       free (sector_pos_array);
@@ -220,6 +227,7 @@ inode_open (block_sector_t sector)
   inode->open_cnt = 1;
   inode->deny_write_cnt = 0;
   inode->removed = false;
+  //do a sema_init here
   block_read (fs_device, inode->sector, &inode->data);
   return inode;
 }
