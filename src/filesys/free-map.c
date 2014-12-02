@@ -40,6 +40,27 @@ free_map_allocate (size_t cnt, block_sector_t *sectorp)
   return sector != BITMAP_ERROR;
 }
 
+bool
+free_map_allocate_discontinuous (size_t cnt, block_sector_t * sector_positions)
+{
+  int fs_size = block_size (fs_device);
+  int sectors_allocated = bitmap_allocate_discontinuous (free_map, cnt, (int) sector_positions, fs_size);
+  if (sectors_allocated < cnt){
+      return false;
+  }
+  
+  if (sectors_allocated != BITMAP_ERROR
+      && free_map_file != NULL
+      && !bitmap_write (free_map, free_map_file))
+    {
+      bitmap_deallocate_continuous(free_map, sector_positions, sectors_allocated);
+      sectors_allocated = BITMAP_ERROR;
+    }
+  if (sectors_allocated != BITMAP_ERROR)
+    *sectorp = sectors_allocated;
+  return sectors_allocated != BITMAP_ERROR;
+}
+
 /* Makes CNT sectors starting at SECTOR available for use. */
 void
 free_map_release (block_sector_t sector, size_t cnt)
