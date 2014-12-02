@@ -218,7 +218,7 @@ inode_close (struct inode *inode)
   /* Ignore null pointer. */
   if (inode == NULL)
     return;
-  block_write (fs_device, sector, inode->data);
+  block_write (fs_device, inode->sector, inode->data);
   
   /* Release resources if this was the last opener. */
   if (--inode->open_cnt == 0)
