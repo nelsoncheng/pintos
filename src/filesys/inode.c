@@ -127,7 +127,7 @@ inode_create (block_sector_t sector, off_t length)
               }
               
               if (sectors < 124){
-                 memcpy(disk_inode->blocks, sector_pos_array, sectors * sizeof (block_sector_t));
+                 memcpy(disk_inode.blocks, sector_pos_array, sectors * sizeof (block_sector_t));
               } else if (sectors > 123 && sectors <= 248){
                  memcpy(disk_inode.blocks, sector_pos_array[0], 123 * sizeof (block_sector_t));
                  memcpy(disk_inode.indirect1->blocks, sector_pos_array[123], (sectors - 123) * sizeof (block_sector_t));
@@ -365,7 +365,7 @@ inode_write_at (struct inode *inode, const void *buffer_, off_t size,
      }
               
      if (sectors < 124){
-         memcpy(inode->data->blocks, sector_pos_array[0], sectors * sizeof (block_sector_t));
+         memcpy(inode->data.blocks, sector_pos_array[0], sectors * sizeof (block_sector_t));
       } else if (sectors > 123 && sectors <= 248){
          memcpy(inode->data.blocks, sector_pos_array[0], 123 * sizeof (block_sector_t));
          memcpy(inode->data.indirect1->blocks, sector_pos_array[123], (sectors - 123) * sizeof (block_sector_t));
@@ -385,7 +385,7 @@ inode_write_at (struct inode *inode, const void *buffer_, off_t size,
             sectors_remaining -= 125;
          }
       }
-               
+      inode->data.length = size + offset;     
   }
   while (size > 0) 
     {
