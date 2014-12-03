@@ -106,7 +106,7 @@ struct thread
     /* Owned by userprog/process.c. */
     uint32_t *pagedir;                  /* Page directory. */
 #endif
-
+    struct dir *cwd			/* Thread's current working directory */
     /* Owned by thread.c. */
     unsigned magic;                     /* Detects stack overflow. */
   };
