@@ -16,6 +16,7 @@
 #define INODE_INDIRECT_SIZE 128
 #define INODE_INDIRECT_2_SIZE 64
 #define COMBINED 248 //INODE_SIZE + INODE_INDIRECT_SIZE
+#define INODE_SECOND_LEVEL_CAPACITY 8440
 
 
 /* On-disk inode.
@@ -140,7 +141,8 @@ inode_create (block_sector_t sector, off_t length)
               }
               
               if (sectors =< INODE_SIZE){
-                 memcpy(disk_inode.blocks, sector_pos_array, sectors * sizeof (block_sector_t));
+                 int sectors_to_write = sectors < INODE_SIZE ? sectors : INODE_SIZE;
+                 memcpy(disk_inode.blocks, sector_pos_array, sectors_to_write * sizeof (block_sector_t));
                  block_write (fs_device, sector, disk_inode);
                  free (disk_inode);
               } else if (sectors > INODE_SIZE && sectors <= COMBINED){
@@ -154,7 +156,7 @@ inode_create (block_sector_t sector, off_t length)
                  block_write (fs_device, indirect_sector, disk_inode.indirect1);
                  free (disk_inode.indirect1);
                  free (disk_inode);
-              } else {
+              } else if (sectors > COMBINED && sectors <= INODE_SECOND_LEVEL_CAPACITY) {
                  disk_inode.indirect1 = (struct inode_disk_indirect *) malloc (sizeof struct inode_disk_indirect);
                  disk_inode.indirect2 = (struct inode_disk_double_indirect *) malloc (sizeof struct inode_disk_double_indirect);
                  memcpy(disk_inode.blocks, sector_pos_array, INODE_SIZE * (sizeof block_sector_t));
@@ -187,6 +189,8 @@ inode_create (block_sector_t sector, off_t length)
                  free (disk_inode.indirect1);
                  free (disk_inode.indirect2);
                  free (disk_inode);
+               } else {
+                  
                }
             }
           success = true; 
