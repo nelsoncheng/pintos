@@ -112,8 +112,8 @@ filesys_parsefilename (const char *dir)
    
    for(token = strtok_r(buf, "/", &save_ptr); token != NULL; token = strtok_r(NULL, "/", &save_ptr));
    
-   file_name = malloc(strlen(token)+1)
+   file_name = malloc(strlen(token)+1);
    memcpy(file_name, token, strlen(prev_token)+1);
    return file_name;
-   
+   // remember to free file_name per call
 }
