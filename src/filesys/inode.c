@@ -81,7 +81,7 @@ byte_to_sector (const struct inode *inode, off_t pos)
     if (sector <= INODE_SIZE){
        return inode->data.blocks[sector - 1];
     } else if (sector > INODE_SIZE && sector <= COMBINED) {
-       return inode->data.indirect1->blocks[sector - 1];
+       return inode->data.indirect1->blocks[sector - INODE_SIZE - 1];
     } else {
        int first_level_index = (sector - COMBINED - 1) / INODE_INDIRECT_SIZE;
        int second_level_index = (sector - COMBINED - 1) % INODE_INDIRECT_SIZE;
