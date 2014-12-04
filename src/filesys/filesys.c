@@ -101,3 +101,19 @@ do_format (void)
   free_map_close ();
   printf ("done.\n");
 }
+
+char *
+filesys_parsefilename (const char *dir)
+{
+   char *token, *save_ptr, *file_name;
+   int length = strlen(dir)+1;
+   char buf[len];
+   memcpy(buf, path, len);
+   
+   for(token = strtok_r(buf, "/", &save_ptr); token != NULL; token = strtok_r(NULL, "/", &save_ptr));
+   
+   file_name = malloc(strlen(token)+1)
+   memcpy(file_name, token, strlen(prev_token)+1);
+   return file_name;
+   
+}
