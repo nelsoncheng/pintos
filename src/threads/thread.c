@@ -223,6 +223,8 @@ thread_create (const char *name, int priority,
   sf = alloc_frame (t, sizeof *sf);
   sf->eip = switch_entry;
   sf->ebp = 0;
+  
+  t->cwd = thread_current()->cwd ? dir_reopen(thread_current()->cwd) : NULL;
 
   intr_set_level (old_level);
 
