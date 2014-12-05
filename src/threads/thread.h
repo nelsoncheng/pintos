@@ -117,7 +117,7 @@ struct thread
 	struct semaphore our_sema; 	    	/* Semaphore belonging to this thread */
 	struct semaphore *their_sema; 	    /* Semaphore belonging to this thread's parent */
     /* Shared between thread.c and synch.c. */
-    struct list_elem elem;              /* List element. */
+	struct list_elem elem;              /* List element. */
 
 	struct list exit_status_list;
 	struct list *parent_exit_list;
@@ -129,11 +129,11 @@ struct thread
 
 #ifdef USERPROG
     /* Owned by userprog/process.c. */
-    uint32_t *pagedir;                  /* Page directory. */
+	uint32_t *pagedir;                  /* Page directory. */
 #endif
-
+	struct dir *cwd /* Thread's current working directory */
     /* Owned by thread.c. */
-    unsigned magic;                     /* Detects stack overflow. */
+	unsigned magic;                     /* Detects stack overflow. */
   };
 
 /* If false (default), use round-robin scheduler.
