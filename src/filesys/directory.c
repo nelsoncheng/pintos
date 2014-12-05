@@ -234,3 +234,18 @@ dir_readdir (struct dir *dir, char name[NAME_MAX + 1])
     }
   return false;
 }
+
+bool 
+dir_root (struct dir* dir)
+{
+  if (!dir){
+    return false;
+  }
+  return inode_get_inumber(dir_get_inode(dir)) == ROOT_DIR_SECTOR;
+}
+
+bool 
+dir_parent (struct dir* dir, struct inode **inode)
+{
+  return inode_open (dir_get_inode(dir)->parent) != NULL;
+}
