@@ -75,7 +75,7 @@ readdir (int fd, char *name)
 
 
 bool
-is dir (int fd)
+is_dir (int fd)
 {
   struct fd_elem * e = find_fd_elem (fd);
   if(!e)
