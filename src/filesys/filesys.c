@@ -75,12 +75,41 @@ filesys_open (const char *name)
 {
   struct dir *dir = dir_open_root ();
   struct inode *inode = NULL;
+  char *fn = filesys_parse_file_name(name);
 
-  if (dir != NULL)
-    dir_lookup (dir, name, &inode);
+  if (dir != NULL){
+     if((dir_is_root(dir) && strlen(file_name) == 0)){
+         thread_current()->cwd = dir;
+         free(fn);
+         return true;
+     }
+     else{
+        switch(filesys_check_path_special_char(fn)){
+            case CURR_DIRECTORY:
+               thread_current()->cwd = dir;
+               free(fn);
+               return (struct file*) dir;
+            case PARENT_DIRECTORY:
+               if (!dir_get_parent(dir, &inode)){
+                  free(fn);
+                  return NULL;
+               }
+               break;
+            default:
+               dir_lookup (dir, name, &inode);
+               break;
+        }
+     }
+  }
+    
   dir_close (dir);
-
-  return file_open (inode);
+  free(filename);
+  if(dir = dir_open(inode)){
+      dir_close(thread_current()->cwd);
+      thread_current()->cwd = dir;
+      return true;
+  }
+  return false;
 }
 
 /* Deletes the file named NAME.
