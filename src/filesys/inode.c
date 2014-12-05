@@ -34,6 +34,9 @@ struct inode_disk
    struct inode_disk_double_indirect * indirect2; /* Pointer to inode of pointers to inodes of pointers to device blocks */
    struct inode_disk_double_indirect * indirect2_2;
    
+   block_sector_t parent;
+   bool isdir;
+   
  };
   
 struct inode_disk_indirect
@@ -117,7 +120,7 @@ inode_init (void)
    Returns true if successful.
    Returns false if memory or disk allocation fails. */
 bool
-inode_create (block_sector_t sector, off_t length)
+inode_create (block_sector_t sector, off_t length, bool isdir)
 {
   struct inode_disk *disk_inode = NULL;
   bool success = false;
@@ -137,6 +140,8 @@ inode_create (block_sector_t sector, off_t length)
       }
       disk_inode->length = length == NULL? 0 : length;
       disk_inode->magic = INODE_MAGIC;
+      disk_inode->isdir = isdir; // nc
+      disk_inode->parent = ROOT_DIR_SECTOR; // nc
       block_sector_t indirect_sector;
       block_sector_t * sector_pos_array = (block_sector_t *) malloc (sectors * (sizeof block_sector_t));
       if (free_map_allocate_discontinuous (sectors, &sector_pos_array)) 
@@ -267,6 +272,8 @@ inode_open (block_sector_t sector)
   inode->open_cnt = 1;
   inode->deny_write_cnt = 0;
   inode->removed = false;
+  inode->isdir = data.isdir; //nc
+  inode->parent = data.parent; //nc
   //do a sema_init here
   block_read (fs_device, inode->sector, &inode->data);
   int size_of_inode = bytes_to_sectors(inode->data.length);
