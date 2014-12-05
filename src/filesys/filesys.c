@@ -7,8 +7,6 @@
 #include "filesys/inode.h"
 #include "filesys/directory.h"
 
-typedef enum {NONE, CURR_DIRECTORY, PARENT_DIRECTORY} directory_token_t;
-
 /* Partition that contains the file system. */
 struct block *fs_device;
 
