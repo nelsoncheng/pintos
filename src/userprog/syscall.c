@@ -51,3 +51,32 @@ syscall_handler (struct intr_frame *f UNUSED)
   thread_exit ();
 }
 
+bool
+syscall_chdir (const char *dir)
+{
+  return filesys_dir(dir);
+}
+
+bool
+mkdir (const char *dir)
+{
+  return filesys_create(dir, 0, true);
+}
+
+bool
+readdir (int fd, char *name)
+{
+  
+}
+
+bool
+is dir (int fd)
+{
+  
+}
+
+int
+inumber (int fd)
+{
+  
+}
