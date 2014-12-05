@@ -246,6 +246,41 @@ bitmap_count (const struct bitmap *b, size_t start, size_t cnt, bool value)
   return value_cnt;
 }
 
+size_t
+bitmap_allocate_discontinuous (const struct bitmap *b, size_t cnt, int * sector_positions, int fs_size) 
+{
+  size_t i, value_cnt;
+
+  ASSERT (b != NULL);
+  ASSERT (cnt < fs_size);
+
+  value_cnt = 0;
+  for (i = 0; i < fs_size; i++){
+    if (value_cnt >= cnt){
+         break;
+    }
+    if (bitmap_test (b, i) == false){
+      sector_positions[value_cnt] = i;
+      bitmap_flip(b, i);
+      value_cnt++;
+    }
+  }
+  return value_cnt;
+}
+
+void
+bitmap_deallocate_discontinuous (const struct bitmap *b, int * sector_positions, int size_of_sector_positions) 
+{
+  size_t i, value_cnt;
+
+  ASSERT (b != NULL);
+  ASSERT (cnt < fs_size);
+
+  for (i = 0; i < size_of_sector_positions; i++){
+    bitmap_flip(b, sector_positions[i]);
+  }
+}
+
 /* Returns true if any bits in B between START and START + CNT,
    exclusive, are set to VALUE, and false otherwise. */
 bool
