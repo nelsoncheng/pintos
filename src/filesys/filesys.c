@@ -7,6 +7,8 @@
 #include "filesys/inode.h"
 #include "filesys/directory.h"
 
+typedef enum {NONE, CURR_DIRECTORY, PARENT_DIRECTORY} directory_token_t;
+
 /* Partition that contains the file system. */
 struct block *fs_device;
 
@@ -47,13 +49,18 @@ filesys_create (const char *name, off_t initial_size)
 {
   block_sector_t inode_sector = 0;
   struct dir *dir = dir_open_root ();
-  bool success = (dir != NULL
+  char* fn = filesys_parse_file_name(name);
+  bool success;
+  if (filesys_check_path_special_char (fn) != NONE){
+      success = (dir != NULL
                   && free_map_allocate (1, &inode_sector)
                   && inode_create (inode_sector, initial_size)
                   && dir_add (dir, name, inode_sector));
+  }
   if (!success && inode_sector != 0) 
     free_map_release (inode_sector, 1);
   dir_close (dir);
+  free(fn);
 
   return success;
 }
@@ -102,8 +109,18 @@ do_format (void)
   printf ("done.\n");
 }
 
+directory_token_t
+filesys_check_path_special_char (const char *path)
+{
+   if(!strcmp(path, "."))
+      return CURR_DIRECTORY;
+   else if (!strcmp(path, ".."))
+      return PARENT_DIRECTORY;
+   return NONE;
+}
+
 char *
-filesys_parsefilename (const char *dir)
+filesys_parse_filename (const char *dir)
 {
    char *token, *save_ptr, *file_name;
    int length = strlen(dir)+1;
