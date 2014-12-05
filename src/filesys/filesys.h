@@ -10,6 +10,8 @@
 #define FREE_MAP_SECTOR 0       /* Free map file inode sector. */
 #define ROOT_DIR_SECTOR 1       /* Root directory file inode sector. */
 
+typedef enum {NONE, CURR_DIRECTORY, PARENT_DIRECTORY} directory_token_t;
+
 /* Block device that contains the file system. */
 struct block *fs_device;
 
@@ -18,6 +20,7 @@ void filesys_done (void);
 bool filesys_create (const char *name, off_t initial_size);
 struct file *filesys_open (const char *name);
 bool filesys_remove (const char *name);
-char *filesys_parsefilename (const char *dir);
+directory_token_t filesys_check_path_special_char (const char *path);
+char *filesys_parse_filename (const char *dir);
 
 #endif /* filesys/filesys.h */
