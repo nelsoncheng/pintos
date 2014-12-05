@@ -66,6 +66,7 @@ mkdir (const char *dir)
 bool
 readdir (int fd, char *name)
 {
+  // TODO: add isdir element and dir attributes to fd_elem
   struct fd_elem * e = find_fd_elem (fd);
   if(!e || !e->isdir)
     return false;
