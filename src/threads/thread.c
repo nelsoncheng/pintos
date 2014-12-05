@@ -101,6 +101,7 @@ thread_init (void)
   init_thread (initial_thread, "main", PRI_DEFAULT);
   initial_thread->status = THREAD_RUNNING;
   initial_thread->tid = allocate_tid ();
+  initial_thread->cwd = dir_open_root();
 }
 
 /* Starts preemptive thread scheduling by enabling interrupts.
@@ -514,6 +515,7 @@ init_thread (struct thread *t, const char *name, int priority)
   t->sleep_sema = &sleep_timer_list;
   sema_init(&t->our_sema, 0);
   t->fd_counter = 2;
+  t->cwd = dir_open_root();
   list_init(&t->files);
 
   //list_insert_ordered (&all_list, &t->allelem, *priority_less_func, NULL);
