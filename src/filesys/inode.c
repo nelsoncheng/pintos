@@ -12,12 +12,12 @@
 #define INODE_MAGIC 0x494e4f44
 
 /* defines the capacities of the various types of inodes */
-#define INODE_SIZE 120
+#define INODE_SIZE 118
 #define INODE_INDIRECT_SIZE 128
 #define INODE_INDIRECT_2_SIZE 64
-#define COMBINED 248 //INODE_SIZE + INODE_INDIRECT_SIZE
+#define COMBINED 246 //INODE_SIZE + INODE_INDIRECT_SIZE
 #define INODE_SECOND_LEVEL_CAPACITY 8192
-#define MAX_SECTORS 16632 //Max number of sectors any file can have
+#define MAX_SECTORS 16630 //Max number of sectors any file can have
 
 /* On-disk inode.
    Must be exactly BLOCK_SECTOR_SIZE bytes long. */
