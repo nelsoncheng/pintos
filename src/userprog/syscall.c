@@ -21,6 +21,11 @@ static int is_valid_pointer (void *p);
 static void syscall_seek (int fd, unsigned position);
 static unsigned syscall_tell (int fd);
 static void syscall_close (int fd);
+static bool syscall_chdir (const char *dir);
+static bool syscall_mkdir (const char *dir);
+static bool syscall_readdir (int fd, char *name);
+static bool syscall_is_dir (int fd);
+static int syscall_inumber (int fd);
 
 struct lock file_lock;
 
@@ -435,20 +440,20 @@ static void syscall_close (int fd){
 	free (fde);
 }
 
-bool
+static bool
 syscall_chdir (const char *dir)
 {
   return filesys_dir(dir);
 }
 
-bool
-mkdir (const char *dir)
+static bool
+syscall_mkdir (const char *dir)
 {
   return filesys_create(dir, 0, true);
 }
 
-bool
-readdir (int fd, char *name)
+static bool
+syscall_readdir (int fd, char *name)
 {
   // TODO: add isdir element and dir attributes to fd_elem
   struct fd_elem * e = find_fd_elem (fd);
@@ -458,8 +463,8 @@ readdir (int fd, char *name)
 }
 
 
-bool
-is_dir (int fd)
+static bool
+syscall_isdir (int fd)
 {
   struct fd_elem * e = find_fd_elem (fd);
   if(!e)
@@ -467,8 +472,8 @@ is_dir (int fd)
   return e->isdir;
 }
 
-int
-inumber (int fd)
+static int
+syscall_inumber (int fd)
 {
   struct fd_elem * e = find_fd_elem (fd);
   if(!e)
