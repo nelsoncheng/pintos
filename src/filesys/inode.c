@@ -133,7 +133,7 @@ inode_create (block_sector_t sector, off_t length)
       if (sectors > MAX_SECTORS || sectors > free_map_count_free()){
          return false;
       }
-      disk_inode->length = length;
+      disk_inode->length = length == NULL? 0 : length;
       disk_inode->magic = INODE_MAGIC;
       block_sector_t indirect_sector;
       block_sector_t * sector_pos_array = (block_sector_t *) malloc (sectors * (sizeof block_sector_t));
@@ -149,7 +149,7 @@ inode_create (block_sector_t sector, off_t length)
               }
               
               if (sectors =< INODE_SIZE){
-                 memcpy(disk_inode->blocks, sector_pos_array, sectors_to_write * sizeof (block_sector_t));
+                 memcpy(disk_inode->blocks, sector_pos_array, sectors * sizeof (block_sector_t));
                  block_write (fs_device, sector, disk_inode);
                  free (disk_inode);
               } else if (sectors > INODE_SIZE && sectors <= COMBINED){
@@ -494,9 +494,11 @@ inode_write_at (struct inode *inode, const void *buffer_, off_t size,
   
   if ((size + offset) > inode->data.length){
      //grow the file
-     size_t sectors = bytes_to_sectors(size + offset - inode->data.length);
-     block_sector_t * sector_pos_array = (block_sector_t *) malloc(sectors * sizeof(block_sector_t));
+     int sectors = bytes_to_sectors(size + offset - inode->data.length);
+     int sectors_so_far = bytes_to_sectors (inode->data.length);
+     int total_sectors = sectors + sectors_so_far;
      
+     block_sector_t * sector_pos_array = (block_sector_t *) malloc(sectors * sizeof(block_sector_t));
      if (!freemap_allocate_discontinuous(sectors, sector_pos_array)){
         //filesystem cannot accomodate this growth, write nothing
         return 0;
@@ -507,86 +509,12 @@ inode_write_at (struct inode *inode, const void *buffer_, off_t size,
      for (i = 0; i < sectors; i++) {
        block_write (fs_device, sector_pos_array[i], zeros);
      }
-              
     if (sectors =< INODE_SIZE){
-        memcpy(disk_inode->blocks, sector_pos_array, sectors_to_write * sizeof (block_sector_t));
-        block_write (fs_device, sector, disk_inode);
-        free (disk_inode);
+       memcpy(inode->data.blocks[sectors_so_far], sector_pos_array, sectors * sizeof (block_sector_t));
     } else if (sectors > INODE_SIZE && sectors <= COMBINED){
-        disk_inode->indirect1 = (struct inode_disk_indirect *) malloc (sizeof struct inode_disk_indirect);
-        memcpy(disk_inode->blocks, sector_pos_array[0], INODE_SIZE * sizeof (block_sector_t));
-        memcpy(disk_inode->indirect1.blocks, sector_pos_array[INODE_SIZE], (sectors - INODE_SIZE) * sizeof (block_sector_t));
-                 
-        free_map_allocate (1, &indirect_sector);
-        disk_inode->indirect1_block = indirect_sector;
-        block_write (fs_device, sector, disk_inode);
-        block_write (fs_device, indirect_sector, disk_inode->indirect1);
-        free (disk_inode->indirect1);
-        free (disk_inode);
+       
     } else if (sectors > COMBINED) {
-        disk_inode->indirect1 = (struct inode_disk_indirect *) malloc (sizeof struct inode_disk_indirect);
-        disk_inode->indirect2 = (struct inode_disk_double_indirect *) malloc (sizeof struct inode_disk_double_indirect);
-        memcpy(disk_inode->blocks, sector_pos_array, INODE_SIZE * (sizeof block_sector_t));
-        memcpy(disk_inode->indirect1->blocks, sector_pos_array[INODE_SIZE], INODE_INDIRECT_SIZE * (sizeof block_sector_t));
-                 
-        free_map_allocate (1, &indirect_sector);
-        disk_inode->indirect1_block = indirect_sector;
-        free_map_allocate (1, &indirect_sector);
-        disk_inode->indirect2_block = indirect_sector;
-                 
-        block_write (fs_device, sector, disk_inode);
-        block_write (fs_device, indirect_sector, disk_inode->indirect1);
-                 
-        int i;
-        int first_level_index = sectors > (INODE_SECOND_LEVEL_CAPACITY + COMBINED) ? 
-        (INODE_SECOND_LEVEL_CAPACITY / INODE_INDIRECT_SIZE) : (sectors - COMBINED) / INODE_INDIRECT_SIZE;
-        int sectors_remaining = sectors > (INODE_SECOND_LEVEL_CAPACITY + COMBINED) ? 
-        INODE_SECOND_LEVEL_CAPACITY : (sectors - COMBINED);
-        for (i = 0; i < first_level_index; i++){
-            disk_inode->indirect2->table_array[i] = (struct inode_disk_indirect *) malloc (sizeof struct inode_disk_indirect);
-            free_map_allocate (1, &indirect_sector);
-            disk_inode->indirect2->inode_blocks[i] = indirect_sector;
-            if (sectors_remaining < INODE_INDIRECT_SIZE){
-                memcpy(disk_inode->indirect2->table_array[i]->blocks, sector_pos_array[COMBINED + (i* INODE_INDIRECT_SIZE)], sectors_remaining * (sizeof block_sector_t));
-            } else {
-                memcpy(disk_inode->indirect2->table_array[i]->blocks, sector_pos_array[COMBINED + (i* INODE_INDIRECT_SIZE)], INODE_INDIRECT_SIZE * (sizeof block_sector_t));
-            }
-            block_write(fs_device, indirect_sector, disk_inode->indirect2->table_array[i]);
-            free (disk_inode->indirect2->table_array[i]);
-            sectors_remaining -= INODE_INDIRECT_SIZE;
-        }
-                  
-        block_write (fs_device, disk_inode->indirect2_block, disk_inode->indirect2);
-                  
-        if (sectors > (INODE_SECOND_LEVEL_CAPACITY + COMBINED)){
-            disk_inode->indirect2_2 = (struct inode_disk_double_indirect *) malloc (sizeof struct inode_disk_double_indirect);
-            free_map_allocate (1, &indirect_sector);
-            disk_inode->indirect2_2_block = indirect_sector;
-            first_level_index = (sectors - INODE_SECOND_LEVEL_CAPACITY - COMBINED) / INODE_INDIRECT_SIZE;
-            sectors_remaining = sectors - INODE_SECOND_LEVEL_CAPACITY - COMBINED;
-                    
-            for (i = 0; i < first_level_index; i++){
-                disk_inode->indirect2_2->table_array[i] = (struct inode_disk_indirect *) malloc (sizeof struct inode_disk_indirect);
-                free_map_allocate (1, &indirect_sector);
-                disk_inode->indirect2_2->inode_blocks[i] = indirect_sector;
-                if (sectors_remaining < INODE_INDIRECT_SIZE){
-                    memcpy(disk_inode->indirect2_2->table_array[i]->blocks, sector_pos_array[COMBINED + INODE_SECOND_LEVEL_CAPACITY (i* INODE_INDIRECT_SIZE)], sectors_remaining * (sizeof block_sector_t));
-                } else {
-                    memcpy(disk_inode->indirect2_2->table_array[i]->blocks, sector_pos_array[COMBINED + INODE_SECOND_LEVEL_CAPACITY (i* INODE_INDIRECT_SIZE)], INODE_INDIRECT_SIZE * (sizeof block_sector_t));
-                }
-                block_write(fs_device, indirect_sector, disk_inode->indirect2->table_array[i]);
-                free (disk_inode->indirect2_2->table_array[i]);
-                sectors_remaining -= INODE_INDIRECT_SIZE;
-                }
-            block_write(fs_device, disk_inode->indirect2_2_block, disk_inode->indirect2_2);
-            free (disk_inode->indirect2_2);
-        }
-        free (disk_inode->indirect1);
-        free (disk_inode>indirect2);
-        free (disk_inode);
-        }
-      inode->data.length = size + offset;     
-      free (sector_pos_array);
+       
   }
   while (size > 0) 
     {
