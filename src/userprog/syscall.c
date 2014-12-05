@@ -66,17 +66,29 @@ mkdir (const char *dir)
 bool
 readdir (int fd, char *name)
 {
-  
+  struct fd_elem * e = find_fd_elem (fd);
+  if(!e || !e->isdir)
+    return false;
+  return dir_readdir(e->dir, name);
 }
+
 
 bool
 is dir (int fd)
 {
-  
+  struct fd_elem * e = find_fd_elem (fd);
+  if(!e)
+    return false;
+  return e->isdir;
 }
 
 int
 inumber (int fd)
 {
+  struct fd_elem * e = find_fd_elem (fd);
+  if(!e)
+    return false;
   
+  return e->isdir ? inode_get_inumber(dir_get_inode(e->dir)) :
+                    inode_get_inumber(file_get_inode(e->file));
 }
