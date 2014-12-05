@@ -116,7 +116,6 @@ struct thread
 	int parent_pid; 		   			 /* ID of this thread's parent */
 	struct semaphore our_sema; 	    	/* Semaphore belonging to this thread */
 	struct semaphore *their_sema; 	    /* Semaphore belonging to this thread's parent */
-	struct dir *cwd /* Thread's current working directory */
     /* Shared between thread.c and synch.c. */
     struct list_elem elem;              /* List element. */
 

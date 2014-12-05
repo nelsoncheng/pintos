@@ -31,7 +31,8 @@ bool bitmap_contains (const struct bitmap *, size_t start, size_t cnt, bool);
 bool bitmap_any (const struct bitmap *, size_t start, size_t cnt);
 bool bitmap_none (const struct bitmap *, size_t start, size_t cnt);
 bool bitmap_all (const struct bitmap *, size_t start, size_t cnt);
-size_t bitmap_allocate_discontinuous (const struct bitmap *b, size_t cnt, int * sector_positions, int fs_size);
+size_t bitmap_allocate_discontinuous (struct bitmap *b, size_t cnt, int * sector_positions, int fs_size);
+void bitmap_deallocate_discontinuous (struct bitmap *b, int * sector_positions, int cnt, int fs_size);
 
 /* Finding set or unset bits. */
 #define BITMAP_ERROR SIZE_MAX

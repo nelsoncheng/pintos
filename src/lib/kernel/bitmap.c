@@ -247,7 +247,7 @@ bitmap_count (const struct bitmap *b, size_t start, size_t cnt, bool value)
 }
 
 size_t
-bitmap_allocate_discontinuous (const struct bitmap *b, size_t cnt, int * sector_positions, int fs_size) 
+bitmap_allocate_discontinuous (struct bitmap *b, size_t cnt, int * sector_positions, int fs_size) 
 {
   size_t i, value_cnt;
 
@@ -269,14 +269,14 @@ bitmap_allocate_discontinuous (const struct bitmap *b, size_t cnt, int * sector_
 }
 
 void
-bitmap_deallocate_discontinuous (const struct bitmap *b, int * sector_positions, int size_of_sector_positions) 
+bitmap_deallocate_discontinuous (struct bitmap *b, int * sector_positions, int cnt, int fs_size) 
 {
-  size_t i, value_cnt;
+  size_t i;
 
   ASSERT (b != NULL);
   ASSERT (cnt < fs_size);
 
-  for (i = 0; i < size_of_sector_positions; i++){
+  for (i = 0; i < cnt; i++){
     bitmap_flip(b, sector_positions[i]);
   }
 }

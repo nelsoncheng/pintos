@@ -48,7 +48,7 @@ free_map_allocate_discontinuous (size_t cnt, block_sector_t * sector_positions)
 
   if (sectors_allocated != cnt)
     {
-      bitmap_deallocate_continuous(free_map, sector_positions, sectors_allocated);
+      bitmap_deallocate_discontinuous(free_map, (int) sector_positions, sectors_allocated, fs_size);
       return false;
     }
   return true;
@@ -100,5 +100,5 @@ free_map_create (void)
 
 int
 free_map_count_free (void){
-  return bitmap_count (free_map, 0, free_map->cnt, 0);
+  return bitmap_count (free_map, 0, block_size (fs_device), 0);
 }
