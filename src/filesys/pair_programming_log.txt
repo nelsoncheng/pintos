@@ -1,0 +1,24 @@
+11/30, 2:00p - 7:00p, Nelson and Jonathan, 5 hours
+Driver Order and Time Length:
+Nelson, 2 hours
+Jonathan, 1 hours
+Nelson, 2 hours
+11/29, 7:00p - 12:00p, Nelson and Jonathan, 5 hours
+Driver Order and Time Length:
+Jonathan, 2 hours
+Nelson, 1 hours
+Jonathan, 2 hours
+12/4, 6:00p - 1:00a, Nelson and Jonathan, 7 hours
+Driver Order and Time Length:
+Jonathan, 2 hours
+Nelson, 1 hours
+Jonathan, 2 hours
+Nelson, 2 hours
+12/5, 1:00p - 1:00a, Nelson and Jonathan, 12 hours
+Driver Order and Time Length:
+Jonathan, 2 hours
+Nelson, 2 hours
+Jonathan, 2 hours
+Nelson, 2 hours
+Jonathan, 2 hours
+Nelson, 2 hours
