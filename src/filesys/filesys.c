@@ -117,9 +117,11 @@ filesys_open (const char *name)
 bool
 filesys_remove (const char *name) 
 {
-  struct dir *dir = dir_open_root ();
+  struct dir *dir = filesys_parse_dir (name);
+  char *fn = filesys_parse_file_name(name);
   bool success = dir != NULL && dir_remove (dir, name);
   dir_close (dir); 
+  free(fn);
 
   return success;
 }
@@ -144,6 +146,24 @@ filesys_check_path_special_char (const char *path)
    else if (!strcmp(path, ".."))
       return PARENT_DIRECTORY;
    return NONE;
+}
+
+bool 
+filesys_chdir (const char *name)
+{
+   //TODO: do this
+}
+
+struct dir * 
+filesys_parse_dir(const char *direc)
+{
+   char *ptr, *token1, *token = strtok_r(buf, "/", &ptr);
+   struct dir *dir;
+   int len = strlen(path) + 1;
+   char buf [len];
+   memcpy(buf, direct, len);
+   
+   //TODO: do this
 }
 
 char *
