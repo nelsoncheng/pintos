@@ -35,8 +35,8 @@ struct inode_disk
    struct inode_disk_double_indirect * indirect2; /* Pointer to inode of pointers to inodes of pointers to device blocks */
    struct inode_disk_double_indirect * indirect2_2;
    
-   //block_sector_t parent;
-   //bool isdir;
+   block_sector_t parent;
+   bool isdir;
    
  };
   
@@ -68,8 +68,8 @@ struct inode
     bool removed;                       /* True if deleted, false otherwise. */
     int deny_write_cnt;                 /* 0: writes ok, >0: deny writes. */
     struct inode_disk data;             /* Inode content. */
-    //bool isdir;
-    //block_sector_t parent;
+    bool isdir;
+    block_sector_t parent;
     
     struct semaphore sema;
   };
@@ -663,4 +663,16 @@ off_t
 inode_length (const struct inode *inode)
 {
   return inode->data.length;
+}
+
+bool
+inode_isdir(struct inode *inode)
+{
+  return inode->isdir;
+}
+
+bool 
+inode_parent(struct inode *inode)
+{
+  return inode->parent;
 }

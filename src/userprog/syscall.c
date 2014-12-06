@@ -24,7 +24,7 @@ static void syscall_close (int fd);
 static bool syscall_chdir (const char *dir);
 static bool syscall_mkdir (const char *dir);
 static bool syscall_readdir (int fd, char *name);
-static bool syscall_is_dir (int fd);
+static bool syscall_isdir (int fd);
 static int syscall_inumber (int fd);
 
 struct lock file_lock;
@@ -443,13 +443,13 @@ static void syscall_close (int fd){
 static bool
 syscall_chdir (const char *dir)
 {
-  return filesys_dir(dir);
+  return filesys_chdir(dir);
 }
 
 static bool
 syscall_mkdir (const char *dir)
 {
-  return filesys_create(dir, 0, true);
+  return filesys_create(dir, 0);
 }
 
 static bool

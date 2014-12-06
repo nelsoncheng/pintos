@@ -247,5 +247,7 @@ dir_root (struct dir* dir)
 bool 
 dir_parent (struct dir* dir, struct inode **inode)
 {
-  return inode_open (dir_get_inode(dir)->parent) != NULL;
+   block_sector_t sector = inode_parent(dir_get_inode(dir));
+   *inode = inode_open (sector);
+   return *inode != NULL;
 }

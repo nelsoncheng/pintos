@@ -25,6 +25,9 @@ struct fd_elem
   int fd;
   struct file *file;
   struct list_elem elem;
+
+  bool isdir;
+  struct dir * dir;
 };
 
 struct thread_aux{

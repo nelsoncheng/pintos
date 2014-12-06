@@ -40,7 +40,7 @@ filesys_create (const char *name, off_t initial_size)
 {
   block_sector_t inode_sector = 0;
   struct dir *dir = dir_open_root ();
-  char* fn = filesys_parse_file_name(name);
+  char* fn = filesys_parse_filename(name);
   bool success;
   if (filesys_check_path_special_char (fn) != NONE){
       success = (dir != NULL
@@ -66,10 +66,10 @@ filesys_open (const char *name)
 {
   struct dir *dir = dir_open_root ();
   struct inode *inode = NULL;
-  char *fn = filesys_parse_file_name(name);
+  char *fn = filesys_parse_filename(name);
 
   if (dir != NULL){
-     if((dir_root(dir) && strlen(file_name) == 0)){
+     if((dir_root(dir) && strlen(fn) == 0)){
          thread_current()->cwd = dir;
          free(fn);
          return true;
@@ -94,7 +94,7 @@ filesys_open (const char *name)
   }
     
   dir_close (dir);
-  free(filename);
+  free(fn);
   if(dir = dir_open(inode)){
       dir_close(thread_current()->cwd);
       thread_current()->cwd = dir;
@@ -111,7 +111,7 @@ bool
 filesys_remove (const char *name) 
 {
   struct dir *dir = filesys_parse_dir (name);
-  char *fn = filesys_parse_file_name(name);
+  char *fn = filesys_parse_filename(name);
   bool success = dir != NULL && dir_remove (dir, name);
   dir_close (dir); 
   free(fn);
@@ -149,13 +149,13 @@ filesys_chdir (const char *name)
    struct inode *inode;
    
    if(dir){
-      switch(filesys_check_path_special_char(token)){
+      switch(filesys_check_path_special_char(dir)){// nc
          case CURR_DIRECTORY:
             thread_current()->cwd = dir;
             free(file_name);
             return true;
          case PARENT_DIRECTORY:
-            if (!dir_get_parent(dir, &inode)){
+            if (!dir_parent(dir, &inode)){
                free(file_name);
                return false;
             }
@@ -164,7 +164,7 @@ filesys_chdir (const char *name)
             dir_lookup (dir, file_name, &inode);
             break;
       }
-      if ((dir_is_root(dir) && strlen(file_name) == 0){
+      if (dir_root(dir) && strlen(file_name) == 0){
          thread_current()->cwd = dir;
          free(file_name);
          return true;
@@ -174,8 +174,8 @@ filesys_chdir (const char *name)
    dir_close (dir);
    free(file_name);
    
-   dir = dir_open (inode);
-   if (dir){
+   
+   if (dir = dir_open (inode)){
       dir_close(thread_current()->cwd);
       thread_current()->cwd = dir;
       return true;
@@ -186,12 +186,13 @@ filesys_chdir (const char *name)
 struct dir * 
 filesys_parse_dir(const char *direc)
 {
-   char *ptr, *token_temp, *token = strtok_r(buf, "/", &ptr);
+   
    struct dir *dir;
    struct inode *inode;
-   int len = strlen(path) + 1;
+   int len = strlen(direc) + 1;
    char buf [len];
-   memcpy(buf, direct, len);
+   memcpy(buf, direc, len);
+   char *ptr, *token_temp, *token = strtok_r(buf, "/", &ptr);
    
    dir = (buf[0] == '/' || !thread_current()->cwd) ? dir_open_root() : dir_reopen(thread_current()->cwd);
    
@@ -203,7 +204,7 @@ filesys_parse_dir(const char *direc)
          case PARENT_DIRECTORY:
             if(!dir_parent(dir, &inode) || (!dir_lookup(dir, token, &inode)))
                return NULL;
-            if (inode->isdir){
+            if (inode_isdir(inode)){
                dir_close(dir);
                dir = dir_open(inode);
             }
@@ -224,14 +225,14 @@ char *
 filesys_parse_filename (const char *dir)
 {
    char *token, *save_ptr, *file_name;
-   int length = strlen(dir)+1;
+   int len = strlen(dir)+1;
    char buf[len];
-   memcpy(buf, path, len);
+   memcpy(buf, dir, len);
    
    for(token = strtok_r(buf, "/", &save_ptr); token != NULL; token = strtok_r(NULL, "/", &save_ptr));
    
    file_name = malloc(strlen(token)+1);
-   memcpy(file_name, token, strlen(prev_token)+1);
+   memcpy(file_name, token, strlen(token)+1);
    return file_name;
    // remember to free file_name per call
 }
