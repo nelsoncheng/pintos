@@ -122,8 +122,9 @@ fsutil_extract (char **argv UNUSED)
           dst = filesys_open (file_name);
           if (dst == NULL)
             PANIC ("%s: open failed", file_name);
-
+		  //PANIC("%d\n", file_length(dst));
           /* Do copy. */
+		 int temp = size;
           while (size > 0)
             {
               int chunk_size = (size > BLOCK_SECTOR_SIZE
@@ -131,13 +132,11 @@ fsutil_extract (char **argv UNUSED)
                                 : size);
               block_read (src, sector++, data);
               if (file_write (dst, data, chunk_size) != chunk_size)
-                PANIC ("%s: write failed with %d bytes unwritten",
-                       file_name, size);
+                PANIC ("%s: write failed with %d bytes unwritten", file_name, size);
               size -= chunk_size;
             }
 
-          /* Finish up. */
-          file_close (dst);
+          //file_close (dst);
         }
     }
 

@@ -36,7 +36,7 @@ process_execute (const char *file_name)
   tid = thread_create (file_name, PRI_DEFAULT, start_process, aux);
   
   sema_down(aux->process_sema);
-  //printf("loaded: %d\n", thread_current()->child_loaded.child_loaded);
+
   if (tid != -1 && thread_current()->child_loaded.child_loaded){
 		//add this PID to the current thread's children list
 		child_e = malloc(sizeof(struct child_elem));
@@ -83,7 +83,6 @@ start_process (void *file_name_)
   //Jonathan driving
   //add the executable to the list of open files, then deny writes 
   process_file = filesys_open(name_ptr);
-  if (process_file == NULL) printf("file is null\n");
   fde = (struct fd_elem *)malloc (sizeof (struct fd_elem));
   fde->file = process_file; 
   fde->fd = thread_current()->fd_counter++;
@@ -323,7 +322,6 @@ load (const char *file_name, void (**eip) (void), void **esp)
   /* Open executable file. */
 
   char *program = strtok_r (fn_copy, " ", &rest);
-
   file = filesys_open (program);
   if (file == NULL) 
     {

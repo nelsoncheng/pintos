@@ -265,6 +265,7 @@ bitmap_allocate_discontinuous (struct bitmap *b, size_t cnt, int * sector_positi
       value_cnt++;
     }
   }
+	
   return value_cnt;
 }
 

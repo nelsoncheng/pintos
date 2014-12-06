@@ -19,5 +19,6 @@ off_t inode_write_at (struct inode *, const void *, off_t size, off_t offset);
 void inode_deny_write (struct inode *);
 void inode_allow_write (struct inode *);
 off_t inode_length (const struct inode *);
+static int inode_overflow (int sectors_so_far, int total_sectors);
 
 #endif /* filesys/inode.h */
