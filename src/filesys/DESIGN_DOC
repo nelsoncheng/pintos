@@ -179,6 +179,19 @@ greater than 8MB, the required filesize limit.
 >> `struct' member, global or static variable, `typedef', or
 >> enumeration.  Identify the purpose of each in 25 words or less.
 
+typedef enum {NONE, CURR_DIRECTORY, PARENT_DIRECTORY} directory_token_t; // enum of possible types of special tokens in directory
+
+struct inode:
+bool isdir;  // flag: directory or file
+block_sector_t parent;  // Block location of the parent inode
+
+struct inode_disk:
+bool isdir;  // flag: directory or file
+block_sector_t parent;  // Block location of the parent inode
+
+thread:
+struct dir* cwd; //thread's current working directory
+
 ---- ALGORITHMS ----
 
 >> B2: Describe your code for traversing a user-specified path.  How
